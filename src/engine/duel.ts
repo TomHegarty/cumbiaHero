@@ -20,6 +20,7 @@ export const BARS_PER_TURN = 4
 
 /** Final health of each side when the song ends. */
 export interface DuelResult {
+  youName: string
   rivalName: string
   you: number
   rival: number

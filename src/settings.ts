@@ -51,3 +51,27 @@ export function saveBest(songId: string, chart: string, score: number): boolean 
     return false
   }
 }
+
+const NAME_KEY = 'cumbiaHero.name'
+export const NAME_MAX = 14
+
+/** A player name as shown on the versus banner: trimmed, single-spaced, capped. */
+export function cleanName(raw: string): string {
+  return raw.replace(/\s+/g, ' ').trim().slice(0, NAME_MAX).trim()
+}
+
+export function loadName(): string {
+  try {
+    return cleanName(localStorage.getItem(NAME_KEY) ?? '')
+  } catch {
+    return ''
+  }
+}
+
+export function saveName(name: string): void {
+  try {
+    localStorage.setItem(NAME_KEY, cleanName(name))
+  } catch {
+    // storage unavailable
+  }
+}

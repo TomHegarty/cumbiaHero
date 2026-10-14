@@ -12,7 +12,7 @@ import { Editor } from './ui/Editor'
 import { Game } from './ui/Game'
 import { Menu } from './ui/Menu'
 import { Results } from './ui/Results'
-import { SetList } from './ui/SetList'
+import { PreGame } from './ui/PreGame'
 
 type Screen =
   | { name: 'menu' }
@@ -20,9 +20,9 @@ type Screen =
   | { name: 'play'; song: Song; chartKey: string; chart: Chart; fromEditor: boolean }
   | { name: 'results'; song: Song; chartKey: string; chart: Chart; stats: Stats; duel?: DuelResult; newBest: boolean; fromEditor: boolean }
   | { name: 'editor'; song: Song; chartKey: string; chart: Chart }
-  | { name: 'setlist' }
-  | { name: 'battle'; yours: string[]; rivals: string[]; run: number }
-  | { name: 'battle-results'; yours: string[]; rivals: string[]; stats: Stats; duel: DuelResult }
+  | { name: 'pregame' }
+  | { name: 'battle'; yours: string[]; rivals: string[]; youName: string; run: number }
+  | { name: 'battle-results'; yours: string[]; rivals: string[]; youName: string; stats: Stats; duel: DuelResult }
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'menu' })
@@ -46,11 +46,11 @@ export default function App() {
   const toEditor = (song: Song, chartKey: string, chart: Chart) =>
     setScreen({ name: 'editor', song, chartKey, chart })
 
-  const startBattle = (yours: string[], rivals: string[]) =>
-    setScreen((s) => ({ name: 'battle', yours, rivals, run: s.name === 'battle' ? s.run + 1 : 0 }))
+  const startBattle = (yours: string[], rivals: string[], youName: string) =>
+    setScreen((s) => ({ name: 'battle', yours, rivals, youName, run: s.name === 'battle' ? s.run + 1 : 0 }))
   const onBattleDone = useCallback(
     (stats: Stats, duel: DuelResult) =>
-      setScreen((s) => (s.name === 'battle' ? { name: 'battle-results', yours: s.yours, rivals: s.rivals, stats, duel } : s)),
+      setScreen((s) => (s.name === 'battle' ? { name: 'battle-results', yours: s.yours, rivals: s.rivals, youName: s.youName, stats, duel } : s)),
     [],
   )
 
@@ -77,7 +77,7 @@ export default function App() {
           }}
             onPlay={(song, key) => play(song, key, song.charts[key])}
             onCalibrate={() => setScreen({ name: 'calibrate' })}
-            onBattle={() => setScreen({ name: 'setlist' })}
+            onBattle={() => setScreen({ name: 'pregame' })}
             onEditor={(song, key) => toEditor(song, key, drafts[`${song.id}/${key}`] ?? song.charts[key])}
           />
         )
@@ -124,12 +124,12 @@ export default function App() {
             }
           />
         )
-      case 'setlist':
+      case 'pregame':
         return (
-          <SetList
+          <PreGame
             volume={settings.volume}
             onBack={() => setScreen({ name: 'menu' })}
-            onStart={(yours) =>
+            onStart={(yours, youName) =>
               startBattle(
                 yours,
                 rivalSetList(
@@ -137,6 +137,7 @@ export default function App() {
                   yours,
                   Date.now(),
                 ),
+                youName,
               )
             }
           />
@@ -147,6 +148,7 @@ export default function App() {
             key={screen.run}
             yours={screen.yours}
             rivals={screen.rivals}
+            youName={screen.youName}
             settings={settings}
             onDone={onBattleDone}
             onQuit={() => setScreen({ name: 'menu' })}
@@ -159,8 +161,8 @@ export default function App() {
             stats={screen.stats}
             duel={screen.duel}
             newBest={false}
-            onRetry={() => startBattle(screen.yours, screen.rivals)}
-            onMenu={() => setScreen({ name: 'setlist' })}
+            onRetry={() => startBattle(screen.yours, screen.rivals, screen.youName)}
+            onMenu={() => setScreen({ name: 'pregame' })}
           />
         )
       case 'editor': {

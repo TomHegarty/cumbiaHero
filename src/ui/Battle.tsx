@@ -10,16 +10,16 @@ import { Game, type RoundSpec } from './Game'
 interface Props {
   yours: string[]
   rivals: string[]
+  youName: string
   settings: Settings
   onDone: (stats: Stats, duel: DuelResult) => void
   onQuit: () => void
 }
 
-const YOU_NAME = 'VOS'
 const RIVAL_NAME = 'EL RAYO'
 
 /** A set-list battle: you and El Rayo alternate, one whole melody per turn. */
-export function Battle({ yours, rivals, settings, onDone, onQuit }: Props) {
+export function Battle({ yours, rivals, youName, settings, onDone, onQuit }: Props) {
   const rounds = useMemo(() => battleRounds(yours, rivals), [yours, rivals])
   const [index, setIndex] = useState(0)
   const [hp, setHp] = useState<Health>({ you: 1, rival: 1 })
@@ -39,12 +39,12 @@ export function Battle({ yours, rivals, settings, onDone, onQuit }: Props) {
       setStats(nextStats)
       setSpec(null)
       if (battleOver(nextHp, index + 1, rounds.length)) {
-        onDone(sumStats(nextStats), { rivalName: RIVAL_NAME, you: nextHp.you, rival: nextHp.rival })
+        onDone(sumStats(nextStats), { youName, rivalName: RIVAL_NAME, you: nextHp.you, rival: nextHp.rival })
       } else {
         setIndex(index + 1)
       }
     },
-    [rounds, index, hp, stats, onDone],
+    [rounds, index, hp, stats, youName, onDone],
   )
 
   if (!melody) return null
@@ -58,6 +58,7 @@ export function Battle({ yours, rivals, settings, onDone, onQuit }: Props) {
         settings={settings}
         duel
         round={spec}
+        youName={youName}
         onFinish={onFinish}
         onQuit={onQuit}
       />
@@ -101,7 +102,7 @@ export function Battle({ yours, rivals, settings, onDone, onQuit }: Props) {
           </span>
         </p>
         <div className="sets">
-          {setColumn(YOU_NAME, yours, 'you')}
+          {setColumn(youName, yours, 'you')}
           <div className="vs">VS</div>
           {setColumn(RIVAL_NAME, rivals, 'rival')}
         </div>

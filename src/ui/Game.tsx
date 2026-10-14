@@ -28,6 +28,8 @@ interface Props {
   duel: boolean
   /** Set-list battle turn; overrides `duel`'s phrase-by-phrase turns. */
   round?: RoundSpec
+  /** Your name on the versus banner. */
+  youName?: string
   onFinish: (stats: Stats, duel?: DuelResult) => void
   onQuit: () => void
 }
@@ -37,7 +39,7 @@ const YOU_NAME = 'VOS'
 const RIVAL_NAME = 'EL RAYO'
 const RIVAL_SKILL = 0.85
 
-export function Game({ song, chart, settings, duel, round, onFinish, onQuit }: Props) {
+export function Game({ song, chart, settings, duel, round, youName = YOU_NAME, onFinish, onQuit }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const crowdRef = useRef<HTMLCanvasElement>(null)
   const sceneRef = useRef<CrowdScene | null>(null)
@@ -219,7 +221,7 @@ export function Game({ song, chart, settings, duel, round, onFinish, onQuit }: P
       if (done) return
       done = true
       player.pause()
-      onFinish({ ...judge.stats }, versus ? { rivalName: RIVAL_NAME, you: youHp(), rival: rivalHp() } : undefined)
+      onFinish({ ...judge.stats }, versus ? { youName, rivalName: RIVAL_NAME, you: youHp(), rival: rivalHp() } : undefined)
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -312,7 +314,7 @@ export function Game({ song, chart, settings, duel, round, onFinish, onQuit }: P
         youTrail = Math.max(you, youTrail - 0.006)
         rivalTrail = Math.max(rival, rivalTrail - 0.006)
         drawVersus(ctx, canvas.width / dpr, {
-          youName: YOU_NAME,
+          youName,
           rivalName: RIVAL_NAME,
           you,
           rival,
@@ -340,7 +342,7 @@ export function Game({ song, chart, settings, duel, round, onFinish, onQuit }: P
       player.pause()
       fx?.dispose()
     }
-  }, [player, song, chart, settings, duel, round, onFinish, runId])
+  }, [player, song, chart, settings, duel, round, youName, onFinish, runId])
 
   const resume = () => {
     if (!player) return

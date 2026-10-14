@@ -3,17 +3,25 @@ import { loadSongTracks, SongPlayer } from '../engine/audio'
 import { SET_SIZE } from '../engine/battle'
 import { SongTiming } from '../engine/chart'
 import { MELODIES, type Melody } from '../melodies'
+import { cleanName, loadName, NAME_MAX, saveName } from '../settings'
 
 interface Props {
   volume: number
-  onStart: (picks: string[]) => void
+  onStart: (picks: string[], name: string) => void
   onBack: () => void
 }
 
+/** What the versus banner calls you when you leave the name blank. */
+export const DEFAULT_NAME = 'VOS'
+
 const PREVIEW_SECONDS = 8
 
-/** Pick the melodies you'll bring to the battle, in the order you'll play them. */
-export function SetList({ volume, onStart, onBack }: Props) {
+/**
+ * Everything before a battle: your name, your opponent and the melodies you'll
+ * bring, in the order you'll play them.
+ */
+export function PreGame({ volume, onStart, onBack }: Props) {
+  const [name, setName] = useState(loadName)
   const [picks, setPicks] = useState<string[]>([])
   const [previewing, setPreviewing] = useState<string | null>(null)
   const preview = useRef<{ player: SongPlayer; timer: number } | null>(null)
@@ -54,11 +62,33 @@ export function SetList({ volume, onStart, onBack }: Props) {
 
   const full = picks.length === SET_SIZE
   return (
-    <div className="panel setlist">
-      <h2 className="chrome">Armá tu lista</h2>
-      <p className="hint">
-        Elegí {SET_SIZE} melodías. Las tocás en este orden, turnándote con El Rayo, que trae las suyas.
-      </p>
+    <div className="panel setlist pregame">
+      <h2 className="chrome">Antes de la batalla</h2>
+
+      <div className="lineup">
+        <label className="player-card you">
+          <span className="tag">Vos</span>
+          <input
+            className="name"
+            value={name}
+            maxLength={NAME_MAX}
+            placeholder={DEFAULT_NAME}
+            aria-label="Tu nombre"
+            autoComplete="nickname"
+            onChange={(e) => setName(e.target.value)}
+          />
+          <span className="status">{picks.length} de {SET_SIZE} melodías</span>
+        </label>
+        <div className="vs">VS</div>
+        <div className="player-card rival">
+          <span className="tag">Rival</span>
+          <span className="name">EL RAYO</span>
+          <span className="status">La máquina · trae su propia lista</span>
+        </div>
+      </div>
+
+      <h3 className="section">Armá tu lista</h3>
+      <p className="hint">Elegí {SET_SIZE} melodías. Las tocás en este orden, turnándote con tu rival.</p>
 
       <ul className="melodies">
         {MELODIES.map((m) => {
@@ -116,10 +146,12 @@ export function SetList({ volume, onStart, onBack }: Props) {
           disabled={!full}
           onClick={() => {
             stopPreview()
-            onStart(picks)
+            const clean = cleanName(name)
+            saveName(clean)
+            onStart(picks, clean || DEFAULT_NAME)
           }}
         >
-          ¡A batallar!
+          ¡Listo!
         </button>
       </div>
     </div>
