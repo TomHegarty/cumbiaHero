@@ -54,7 +54,7 @@ export function Calibration({ initialMs, onSave, onBack }: Props) {
 
   return (
     <div className="panel">
-      <h2>Calibración</h2>
+      <h2 className="chrome">Calibración</h2>
       <p>
         Press <kbd>Start</kbd>, then tap <kbd>Space</kbd> on every click you hear. The first {WARMUP}{' '}
         clicks are a warm-up.

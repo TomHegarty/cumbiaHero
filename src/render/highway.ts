@@ -28,7 +28,51 @@ export interface FrameState {
 }
 
 const GRADE_TEXT: Record<Grade, string> = { perfect: '¡PERFECTO!', good: 'BIEN', miss: 'FALLO' }
-const GRADE_COLOR: Record<Grade, string> = { perfect: '#ffe14d', good: '#4dffb8', miss: '#ff4d6a' }
+const GRADE_COLOR: Record<Grade, [string, string]> = {
+  perfect: ['#fffbe0', '#ff9d00'],
+  good: ['#e9fffb', '#00c8ff'],
+  miss: ['#ffd0d0', '#e4002b'],
+}
+const DISPLAY_FONT = "'Bungee', 'Arial Black', Impact, sans-serif"
+
+/** Brushed-chrome vertical gradient between y0 and y1. */
+function chrome(ctx: CanvasRenderingContext2D, y0: number, y1: number): CanvasGradient {
+  const g = ctx.createLinearGradient(0, y0, 0, y1)
+  g.addColorStop(0, '#ffffff')
+  g.addColorStop(0.3, '#e9eef5')
+  g.addColorStop(0.48, '#8a96a8')
+  g.addColorStop(0.52, '#2b3140')
+  g.addColorStop(0.7, '#9aa6b8')
+  g.addColorStop(1, '#ffffff')
+  return g
+}
+
+/** Chunky 2000s CD-cover lettering: black outline, offset shadow, gradient fill. */
+function bigText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  size: number,
+  colors: [string, string],
+): void {
+  ctx.save()
+  ctx.font = `${Math.round(size)}px ${DISPLAY_FONT}`
+  ctx.lineJoin = 'round'
+  ctx.translate(x, y)
+  ctx.transform(1, 0, -0.15, 1, 0, 0)
+  ctx.fillStyle = '#000'
+  ctx.fillText(text, size * 0.08, size * 0.1)
+  ctx.lineWidth = Math.max(2, size * 0.14)
+  ctx.strokeStyle = '#000'
+  ctx.strokeText(text, 0, 0)
+  const g = ctx.createLinearGradient(0, -size * 0.8, 0, size * 0.1)
+  g.addColorStop(0, colors[0])
+  g.addColorStop(1, colors[1])
+  ctx.fillStyle = g
+  ctx.fillText(text, 0, 0)
+  ctx.restore()
+}
 /** How much the far end of the highway shrinks. */
 const DEPTH = 2.6
 /** Extra horizontal gap between the two hands, in lane widths. */
@@ -75,13 +119,14 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
   const l = layout(w, h)
   const zOf = (t: number) => (t - f.time) / f.lookahead
 
-  // Background
+  // Background: deep blue with a slowly turning sunburst behind the horizon
   const bg = ctx.createLinearGradient(0, 0, 0, h)
-  bg.addColorStop(0, '#12002b')
-  bg.addColorStop(0.6, '#2a0040')
-  bg.addColorStop(1, '#070012')
+  bg.addColorStop(0, '#1a0f8a')
+  bg.addColorStop(0.5, '#0d0650')
+  bg.addColorStop(1, '#05021e')
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, w, h)
+  drawSunburst(ctx, l.cx, l.topY, Math.hypot(w, h), f.time, f.stats.saborActive)
 
   // Highway body
   const leftEdge = -LANE_COUNT / 2 - HAND_GAP / 2
@@ -92,8 +137,30 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
   ctx.lineTo(l.cx + rightEdge * l.laneW * scaleAt(-0.12), yAt(l, -0.12))
   ctx.lineTo(l.cx + leftEdge * l.laneW * scaleAt(-0.12), yAt(l, -0.12))
   ctx.closePath()
-  ctx.fillStyle = f.stats.saborActive ? 'rgba(255, 120, 40, 0.18)' : 'rgba(10, 0, 25, 0.75)'
+  const body = ctx.createLinearGradient(0, yAt(l, 1), 0, l.hitY)
+  if (f.stats.saborActive) {
+    body.addColorStop(0, 'rgba(120, 10, 0, 0.85)')
+    body.addColorStop(1, 'rgba(255, 110, 0, 0.55)')
+  } else {
+    body.addColorStop(0, 'rgba(0, 0, 20, 0.92)')
+    body.addColorStop(1, 'rgba(10, 8, 60, 0.88)')
+  }
+  ctx.fillStyle = body
   ctx.fill()
+
+  // Chrome side rails and the hand split
+  for (const [edge, width] of [
+    [leftEdge, 6],
+    [rightEdge, 6],
+    [0, 3],
+  ] as const) {
+    ctx.strokeStyle = chrome(ctx, yAt(l, 1), l.hitY + 40)
+    ctx.lineWidth = width
+    ctx.beginPath()
+    ctx.moveTo(l.cx + edge * l.laneW * scaleAt(1), yAt(l, 1))
+    ctx.lineTo(l.cx + edge * l.laneW * scaleAt(-0.12), yAt(l, -0.12))
+    ctx.stroke()
+  }
 
   // Lane dividers
   ctx.lineWidth = 1
@@ -139,17 +206,40 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
   for (let i = 0; i < LANE_COUNT; i++) {
     const x = xAt(l, i, 0)
     const r = l.laneW * 0.4
+    // chrome bezel
     ctx.beginPath()
-    ctx.arc(x, l.hitY, r, 0, Math.PI * 2)
-    ctx.fillStyle = f.pressed[i] ? LANE_COLORS[i] : 'rgba(0,0,0,0.6)'
+    ctx.arc(x, l.hitY, r * 1.12, 0, Math.PI * 2)
+    ctx.fillStyle = chrome(ctx, l.hitY - r * 1.12, l.hitY + r * 1.12)
     ctx.fill()
+    ctx.lineWidth = 2
+    ctx.strokeStyle = '#000'
+    ctx.stroke()
+    // colored button, lit when pressed
+    ctx.beginPath()
+    ctx.arc(x, l.hitY, r * 0.86, 0, Math.PI * 2)
+    if (f.pressed[i]) {
+      const lit = ctx.createRadialGradient(x - r * 0.3, l.hitY - r * 0.3, 1, x, l.hitY, r)
+      lit.addColorStop(0, '#fff')
+      lit.addColorStop(0.35, LANE_COLORS[i])
+      lit.addColorStop(1, shade(LANE_COLORS[i]))
+      ctx.fillStyle = lit
+      ctx.shadowColor = LANE_COLORS[i]
+      ctx.shadowBlur = 24
+    } else {
+      ctx.fillStyle = shade(shade(LANE_COLORS[i]))
+    }
+    ctx.fill()
+    ctx.shadowBlur = 0
     ctx.lineWidth = 3
     ctx.strokeStyle = LANE_COLORS[i]
     ctx.stroke()
-    ctx.fillStyle = f.pressed[i] ? '#111' : '#fff'
-    ctx.font = `bold ${Math.round(r * 0.8)}px system-ui, sans-serif`
+    ctx.font = `${Math.round(r * 0.75)}px ${DISPLAY_FONT}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
+    ctx.lineWidth = 4
+    ctx.strokeStyle = '#000'
+    ctx.strokeText(LANE_LABELS[i], x, l.hitY + 1)
+    ctx.fillStyle = '#fff'
     ctx.fillText(LANE_LABELS[i], x, l.hitY + 1)
   }
 
@@ -193,17 +283,31 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
     const y = yAt(l, z)
     const rw = l.laneW * 0.42 * s
     const rh = l.laneW * 0.22 * s
+    // chrome bezel
     ctx.beginPath()
-    ctx.ellipse(x, y, rw, rh, 0, 0, Math.PI * 2)
-    ctx.fillStyle = dim ? '#555' : color
+    ctx.ellipse(x, y + rh * 0.18, rw * 1.08, rh * 1.15, 0, 0, Math.PI * 2)
+    ctx.fillStyle = dim ? '#333' : chrome(ctx, y - rh, y + rh * 1.4)
     ctx.fill()
-    ctx.lineWidth = Math.max(1, 3 * s)
-    ctx.strokeStyle = dim ? '#333' : '#fff'
+    // candy gem
+    ctx.beginPath()
+    ctx.ellipse(x, y, rw * 0.9, rh * 0.85, 0, 0, Math.PI * 2)
+    if (dim) {
+      ctx.fillStyle = '#555'
+    } else {
+      const gem = ctx.createRadialGradient(x - rw * 0.3, y - rh * 0.4, 1, x, y, rw)
+      gem.addColorStop(0, '#ffffff')
+      gem.addColorStop(0.25, color)
+      gem.addColorStop(1, shade(color))
+      ctx.fillStyle = gem
+    }
+    ctx.fill()
+    ctx.lineWidth = Math.max(1, 1.5 * s)
+    ctx.strokeStyle = '#000'
     ctx.stroke()
     if (!dim) {
       ctx.beginPath()
-      ctx.ellipse(x, y - rh * 0.2, rw * 0.45, rh * 0.35, 0, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(255,255,255,0.55)'
+      ctx.ellipse(x - rw * 0.15, y - rh * 0.35, rw * 0.5, rh * 0.28, 0, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(255,255,255,0.7)'
       ctx.fill()
     }
   }
@@ -214,10 +318,17 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
     if (age < 0 || age > 0.6) continue
     const alpha = 1 - age / 0.6
     ctx.globalAlpha = alpha
-    ctx.fillStyle = GRADE_COLOR[p.grade]
-    ctx.font = `bold ${Math.round(l.laneW * 0.32)}px system-ui, sans-serif`
     ctx.textAlign = 'center'
-    ctx.fillText(GRADE_TEXT[p.grade], xAt(l, p.lane, 0), l.hitY - l.laneW * 0.7 - age * 60)
+    ctx.textBaseline = 'alphabetic'
+    const pop = 1 + Math.max(0, 0.12 - age) * 3
+    bigText(
+      ctx,
+      GRADE_TEXT[p.grade],
+      xAt(l, p.lane, 0),
+      l.hitY - l.laneW * 0.75 - age * 60,
+      l.laneW * 0.3 * pop,
+      GRADE_COLOR[p.grade],
+    )
     ctx.globalAlpha = 1
   }
 
@@ -226,42 +337,87 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
 
 function drawHud(ctx: CanvasRenderingContext2D, l: Layout, f: FrameState): void {
   const s = f.stats
-  ctx.textBaseline = 'top'
+  ctx.textBaseline = 'alphabetic'
   ctx.textAlign = 'left'
-  ctx.fillStyle = '#fff'
-  ctx.font = 'bold 28px system-ui, sans-serif'
-  ctx.fillText(Math.round(s.score).toLocaleString(), 20, 18)
-  ctx.font = '16px system-ui, sans-serif'
-  ctx.fillStyle = '#ffb3f0'
-  ctx.fillText(`Combo ${s.combo}`, 20, 54)
+  bigText(ctx, Math.round(s.score).toLocaleString(), 22, 50, 32, ['#ffffff', '#9aa6b8'])
+  if (s.combo >= 5) bigText(ctx, `¡${s.combo} COMBO!`, 22, 84, 18, ['#fffbe0', '#ff1fa9'])
 
   ctx.textAlign = 'right'
-  ctx.font = 'bold 34px system-ui, sans-serif'
-  ctx.fillStyle = s.saborActive ? '#ff9a3d' : '#00e0ff'
-  ctx.fillText(`×${f.multiplier}`, l.w - 20, 16)
-
-  // Sabor meter
-  const mw = 160
-  const mx = l.w - 20 - mw
-  const my = 60
-  ctx.fillStyle = 'rgba(255,255,255,0.15)'
-  ctx.fillRect(mx, my, mw, 10)
-  ctx.fillStyle = s.saborActive ? '#ff9a3d' : s.sabor >= SABOR_MIN_TO_ACTIVATE ? '#ffe14d' : '#b04dff'
-  ctx.fillRect(mx, my, mw * s.sabor, 10)
-  ctx.fillStyle = 'rgba(255,255,255,0.6)'
-  ctx.fillRect(mx + mw * SABOR_MIN_TO_ACTIVATE - 1, my - 2, 2, 14)
-  ctx.font = '12px system-ui, sans-serif'
-  ctx.fillStyle = '#fff'
-  ctx.fillText(
-    s.saborActive ? '¡SABOR!' : s.sabor >= SABOR_MIN_TO_ACTIVATE ? 'SABOR listo — ESPACIO' : 'SABOR',
-    l.w - 20,
-    76,
+  bigText(
+    ctx,
+    `x${f.multiplier}`,
+    l.w - 22,
+    54,
+    40,
+    s.saborActive ? ['#fffbe0', '#e4002b'] : ['#fffbe0', '#ff9d00'],
   )
+
+  // Sabor meter: chrome frame, fire fill
+  const mw = 170
+  const mh = 14
+  const mx = l.w - 22 - mw
+  const my = 68
+  ctx.fillStyle = chrome(ctx, my - 3, my + mh + 3)
+  ctx.fillRect(mx - 3, my - 3, mw + 6, mh + 6)
+  ctx.fillStyle = '#05021e'
+  ctx.fillRect(mx, my, mw, mh)
+  const fire = ctx.createLinearGradient(mx, 0, mx + mw, 0)
+  fire.addColorStop(0, '#e4002b')
+  fire.addColorStop(0.5, '#ff7a00')
+  fire.addColorStop(1, '#ffe600')
+  ctx.fillStyle = s.sabor >= SABOR_MIN_TO_ACTIVATE || s.saborActive ? fire : '#7a3cff'
+  ctx.fillRect(mx, my, mw * s.sabor, mh)
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'
+  ctx.fillRect(mx, my, mw * s.sabor, mh * 0.4)
+  ctx.fillStyle = '#fff'
+  ctx.fillRect(mx + mw * SABOR_MIN_TO_ACTIVATE - 1, my - 3, 2, mh + 6)
+  const label = s.saborActive ? '¡SABOR!' : s.sabor >= SABOR_MIN_TO_ACTIVATE ? 'SABOR — ¡ESPACIO!' : 'SABOR'
+  bigText(ctx, label, l.w - 22, my + mh + 22, 14, ['#ffffff', '#ffe600'])
 
   // Progress
   const p = Math.max(0, Math.min(1, f.time / f.duration))
   ctx.fillStyle = 'rgba(255,255,255,0.12)'
-  ctx.fillRect(0, l.h - 4, l.w, 4)
-  ctx.fillStyle = '#ff3d7f'
-  ctx.fillRect(0, l.h - 4, l.w * p, 4)
+  ctx.fillRect(0, l.h - 5, l.w, 5)
+  ctx.fillStyle = fire
+  ctx.fillRect(0, l.h - 5, l.w * p, 5)
+}
+
+/** Darken a #rrggbb colour. */
+function shade(hex: string, k = 0.45): string {
+  const n = parseInt(hex.slice(1), 16)
+  const r = Math.round(((n >> 16) & 255) * k)
+  const g = Math.round(((n >> 8) & 255) * k)
+  const b = Math.round((n & 255) * k)
+  return `rgb(${r},${g},${b})`
+}
+
+/** Red/yellow sunburst rays radiating from the horizon, turning with the music. */
+function drawSunburst(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  radius: number,
+  time: number,
+  hot: boolean,
+): void {
+  const rays = 24
+  const step = (Math.PI * 2) / rays
+  const spin = time * 0.08
+  ctx.save()
+  for (let i = 0; i < rays; i++) {
+    const a = spin + i * step
+    ctx.beginPath()
+    ctx.moveTo(cx, cy)
+    ctx.arc(cx, cy, radius, a, a + step / 2)
+    ctx.closePath()
+    ctx.fillStyle = i % 2 ? (hot ? 'rgba(255,230,0,0.22)' : 'rgba(255,230,0,0.12)') : hot ? 'rgba(228,0,43,0.3)' : 'rgba(228,0,43,0.16)'
+    ctx.fill()
+  }
+  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 0.35)
+  glow.addColorStop(0, 'rgba(255,250,200,0.9)')
+  glow.addColorStop(0.1, 'rgba(255,160,0,0.45)')
+  glow.addColorStop(1, 'rgba(255,160,0,0)')
+  ctx.fillStyle = glow
+  ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2)
+  ctx.restore()
 }

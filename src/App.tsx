@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import type { Stats } from './engine/judge'
 import { loadSettings, saveBest, saveSettings, type Settings } from './settings'
 import type { Chart, Song } from './songs/types'
+import { Backdrop } from './ui/Backdrop'
 import { Calibration } from './ui/Calibration'
 import { Editor } from './ui/Editor'
 import { Game } from './ui/Game'
@@ -37,74 +38,90 @@ export default function App() {
   const toEditor = (song: Song, chartKey: string, chart: Chart) =>
     setScreen({ name: 'editor', song, chartKey, chart })
 
-  switch (screen.name) {
-    case 'menu':
-      return (
-        <Menu
-          offsetMs={settings.offsetMs}
-          onPlay={(song, key) => play(song, key, song.charts[key])}
-          onCalibrate={() => setScreen({ name: 'calibrate' })}
-          onEditor={(song, key) => toEditor(song, key, drafts[`${song.id}/${key}`] ?? song.charts[key])}
-        />
-      )
-    case 'calibrate':
-      return (
-        <Calibration
-          initialMs={settings.offsetMs}
-          onBack={() => setScreen({ name: 'menu' })}
-          onSave={(offsetMs) => {
-            const next = { ...settings, offsetMs }
+  const backdrop = screen.name !== 'play' && screen.name !== 'editor'
+  return (
+    <>
+      {backdrop && <Backdrop />}
+      {renderScreen()}
+    </>
+  )
+
+  function renderScreen() {
+    switch (screen.name) {
+      case 'menu':
+        return (
+          <Menu
+            offsetMs={settings.offsetMs}
+          volume={settings.volume}
+          onVolume={(volume) => {
+            const next = { ...settings, volume }
             saveSettings(next)
             setSettings(next)
-            setScreen({ name: 'menu' })
           }}
-        />
-      )
-    case 'play':
-      return (
-        <Game
-          song={screen.song}
-          chart={screen.chart}
-          settings={settings}
-          onFinish={onFinish}
-          onQuit={() =>
-            screen.fromEditor
-              ? toEditor(screen.song, screen.chartKey, screen.chart)
-              : setScreen({ name: 'menu' })
-          }
-        />
-      )
-    case 'results':
-      return (
-        <Results
-          song={screen.song}
-          stats={screen.stats}
-          newBest={screen.newBest}
-          onRetry={() => play(screen.song, screen.chartKey, screen.chart, screen.fromEditor)}
-          onMenu={() =>
-            screen.fromEditor
-              ? toEditor(screen.song, screen.chartKey, screen.chart)
-              : setScreen({ name: 'menu' })
-          }
-        />
-      )
-    case 'editor': {
-      const key = `${screen.song.id}/${screen.chartKey}`
-      return (
-        <Editor
-          key={key}
-          song={screen.song}
-          chart={screen.chart}
-          onTest={(chart) => {
-            setDrafts((d) => ({ ...d, [key]: chart }))
-            play(screen.song, screen.chartKey, chart, true)
-          }}
-          onBack={(chart) => {
-            setDrafts((d) => ({ ...d, [key]: chart }))
-            setScreen({ name: 'menu' })
-          }}
-        />
-      )
+            onPlay={(song, key) => play(song, key, song.charts[key])}
+            onCalibrate={() => setScreen({ name: 'calibrate' })}
+            onEditor={(song, key) => toEditor(song, key, drafts[`${song.id}/${key}`] ?? song.charts[key])}
+          />
+        )
+      case 'calibrate':
+        return (
+          <Calibration
+            initialMs={settings.offsetMs}
+            onBack={() => setScreen({ name: 'menu' })}
+            onSave={(offsetMs) => {
+              const next = { ...settings, offsetMs }
+              saveSettings(next)
+              setSettings(next)
+              setScreen({ name: 'menu' })
+            }}
+          />
+        )
+      case 'play':
+        return (
+          <Game
+            song={screen.song}
+            chart={screen.chart}
+            settings={settings}
+            onFinish={onFinish}
+            onQuit={() =>
+              screen.fromEditor
+                ? toEditor(screen.song, screen.chartKey, screen.chart)
+                : setScreen({ name: 'menu' })
+            }
+          />
+        )
+      case 'results':
+        return (
+          <Results
+            song={screen.song}
+            stats={screen.stats}
+            newBest={screen.newBest}
+            onRetry={() => play(screen.song, screen.chartKey, screen.chart, screen.fromEditor)}
+            onMenu={() =>
+              screen.fromEditor
+                ? toEditor(screen.song, screen.chartKey, screen.chart)
+                : setScreen({ name: 'menu' })
+            }
+          />
+        )
+      case 'editor': {
+        const key = `${screen.song.id}/${screen.chartKey}`
+        return (
+          <Editor
+            key={key}
+            song={screen.song}
+            chart={screen.chart}
+            onTest={(chart) => {
+              setDrafts((d) => ({ ...d, [key]: chart }))
+              play(screen.song, screen.chartKey, chart, true)
+            }}
+            onBack={(chart) => {
+              setDrafts((d) => ({ ...d, [key]: chart }))
+              setScreen({ name: 'menu' })
+            }}
+          />
+        )
+      }
     }
   }
 }

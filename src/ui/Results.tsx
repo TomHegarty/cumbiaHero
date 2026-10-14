@@ -16,8 +16,8 @@ export function Results({ song, stats, newBest, onRetry, onMenu }: Props) {
       <p className="subtitle">
         {song.title} — {song.artist}
       </p>
-      <div className="grade">{letterGrade(acc)}</div>
-      <h2>{Math.round(stats.score).toLocaleString()}</h2>
+      <div className="grade gold">{letterGrade(acc)}</div>
+      <div className="score">{Math.round(stats.score).toLocaleString()}</div>
       {newBest && <p className="new-best">¡Nuevo récord!</p>}
       <table>
         <tbody>
@@ -44,7 +44,7 @@ export function Results({ song, stats, newBest, onRetry, onMenu }: Props) {
         </tbody>
       </table>
       <div className="stack">
-        <button autoFocus onClick={onRetry}>
+        <button className="hot" autoFocus onClick={onRetry}>
           Otra vez
         </button>
         <button onClick={onMenu}>Menú</button>

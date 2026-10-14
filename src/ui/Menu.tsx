@@ -8,19 +8,22 @@ interface Props {
   onCalibrate: () => void
   onEditor: (song: Song, chartKey: string) => void
   offsetMs: number
+  volume: number
+  onVolume: (volume: number) => void
 }
 
-export function Menu({ onPlay, onCalibrate, onEditor, offsetMs }: Props) {
+export function Menu({ onPlay, onCalibrate, onEditor, offsetMs, volume, onVolume }: Props) {
   return (
     <div className="panel menu">
       <h1 className="logo">
-        Cumbia <span>Hero</span>
+        <span className="word">Cumbia</span>
+        <span className="word gold">Hero</span>
       </h1>
-      <p className="subtitle">Toca el teclado. Sigue la cumbia.</p>
+      <div className="ribbon">¡Tocá el teclado, seguí la cumbia!</div>
 
       <div className="keys">
         {LANE_LABELS.map((k, i) => (
-          <kbd key={k} style={{ borderColor: LANE_COLORS[i], color: LANE_COLORS[i] }}>
+          <kbd key={k} style={{ background: LANE_COLORS[i] }}>
             {k}
           </kbd>
         ))}
@@ -31,11 +34,13 @@ export function Menu({ onPlay, onCalibrate, onEditor, offsetMs }: Props) {
       </p>
 
       <ul className="songs">
-        {SONGS.map((song) =>
+        {SONGS.map((song, i) =>
           Object.entries(song.charts).map(([key, chart]) => (
             <li key={`${song.id}/${key}`}>
-              <div>
-                <strong>{song.title}</strong> — {song.artist}
+              <div className="cd" />
+              <div className="info">
+                <div className="title">{song.title}</div>
+                <div className="artist">{song.artist}</div>
                 <div className="meta">
                   {chart.name} · {song.tempo[0].bpm} BPM · {chart.notes.length} notas
                   {chart.source === 'generated' && ' · auto-charted'} · récord{' '}
@@ -43,21 +48,41 @@ export function Menu({ onPlay, onCalibrate, onEditor, offsetMs }: Props) {
                 </div>
               </div>
               <div className="row">
-                <button onClick={() => onPlay(song, key)} disabled={chart.notes.length === 0}>
+                <button className="hot" onClick={() => onPlay(song, key)} disabled={chart.notes.length === 0}>
                   ¡Tocar!
                 </button>
                 <button className="secondary" onClick={() => onEditor(song, key)}>
                   Editor
                 </button>
               </div>
+              {i === 0 && (
+                <div className="sticker">
+                  ¡EL
+                  <br />
+                  HIT!
+                </div>
+              )}
             </li>
           )),
         )}
       </ul>
 
-      <button className="secondary" onClick={onCalibrate}>
-        Calibrar ({offsetMs} ms)
-      </button>
+      <div className="settings">
+        <label className="volume">
+          <span>Volumen</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round(volume * 100)}
+            onChange={(e) => onVolume(Number(e.target.value) / 100)}
+          />
+          <span className="pct">{Math.round(volume * 100)}%</span>
+        </label>
+        <button className="secondary" onClick={onCalibrate}>
+          Calibrar ({offsetMs} ms)
+        </button>
+      </div>
     </div>
   )
 }
