@@ -19,8 +19,8 @@ export const LOBBY_TTL_MS = 2 * 3600_000
 
 /** The pre-game countdown once both players are ready. */
 export const COUNTDOWN_MS = 4000
-/** The round card before each melody, which counts down on its own. */
-export const ROUND_INTRO_MS = 5000
+/** From one round settling to the next one's lead-in, while the round card shows and the crowd cheers. */
+export const ROUND_INTRO_MS = 2500
 /** How long a vanished rival has to come back before you win by forfeit. */
 export const FORFEIT_MS = 10_000
 

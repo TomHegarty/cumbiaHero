@@ -123,6 +123,10 @@ export class CrowdFx {
     }
   }
 
+  setLevel(level: number): void {
+    this.out.gain.value = level
+  }
+
   dispose(): void {
     this.out.disconnect()
   }

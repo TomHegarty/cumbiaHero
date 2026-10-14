@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { audioContext, loadSongTracks, SongPlayer } from '../engine/audio'
 import { afterRound, SET_SIZE, type Health, type Side } from '../engine/battle'
 import { CrowdFx } from '../engine/crowdfx'
@@ -45,9 +45,17 @@ interface Props {
   startAt?: number
   onFinish: (stats: Stats, duel?: DuelResult) => void
   onQuit: () => void
+  /** Drawn over the stage, e.g. the round card between battle rounds. */
+  children?: ReactNode
 }
 
 const LEAD_IN = 2
+/**
+ * In a battle the stage stays up from round to round: when the song or chart
+ * changes the outgoing song keeps playing and fades out under the next one's
+ * lead-in, while the crowd cheers the handover.
+ */
+const BLEND_SECONDS = 2.5
 const RIVAL_NAME = 'EL RAYO'
 const RIVAL_SKILL = 0.85
 
@@ -64,13 +72,19 @@ export function Game({
   startAt,
   onFinish,
   onQuit,
+  children,
 }: Props) {
   const t = useT()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const crowdRef = useRef<HTMLCanvasElement>(null)
   const sceneRef = useRef<CrowdScene | null>(null)
   const size = useCanvasSize(canvasRef)
-  const [player, setPlayer] = useState<SongPlayer | null>(null)
+  // The loaded song and its player; a stale pair (from the last round) is never played
+  const [loaded, setLoaded] = useState<{ song: Song; player: SongPlayer } | null>(null)
+  const player = loaded?.song === song ? loaded.player : null
+  // A crowd that outlives each song, for cheering the handover between rounds
+  const handover = useRef<CrowdFx | null>(null)
+  const volume = useRef(settings.volume)
   const [error, setError] = useState<string | null>(null)
   const [paused, setPaused] = useState(false)
   const [runId, setRunId] = useState(0)
@@ -89,15 +103,28 @@ export function Game({
       .then(({ main, lead }) => {
         if (cancelled) return
         p = new SongPlayer(main, undefined, lead)
-        p.setVolume(settings.volume)
-        setPlayer(p)
+        p.setVolume(volume.current)
+        setLoaded({ song, player: p })
       })
       .catch((e: unknown) => setError(String(e)))
     return () => {
       cancelled = true
-      p?.dispose()
+      p?.fadeOutAndDispose(BLEND_SECONDS)
     }
-  }, [song, settings.volume])
+  }, [song])
+  useEffect(() => {
+    volume.current = settings.volume
+    player?.setVolume(settings.volume)
+    handover.current?.setLevel(0.5 * settings.volume)
+  }, [player, settings.volume])
+  useEffect(() => {
+    const fx = new CrowdFx(audioContext(), audioContext().destination, 0.5 * volume.current)
+    handover.current = fx
+    return () => {
+      handover.current = null
+      fx.dispose()
+    }
+  }, [])
 
   // The 3D crowd loads lazily; until it is ready (or if WebGL is missing) the 2D hall is drawn instead.
   useEffect(() => {
@@ -255,7 +282,11 @@ export function Game({
     const finish = () => {
       if (done) return
       done = true
-      player.pause()
+      if (round) {
+        // The room roars for the set that just ended, over the song as it carries on into the next
+        handover.current?.cheer(actx.currentTime + 0.05, 1.3)
+        hypeAt = heardTime()
+      } else player.pause()
       onFinish({ ...judge.stats }, versus ? { youName, rivalName, you: youHp(), rival: rivalHp() } : undefined)
     }
 
@@ -364,7 +395,7 @@ export function Game({
           callout: callout(beat, turn),
         })
       }
-      if (player.playing && t >= endTime) finish()
+      if (player.playing && t >= endTime && !done) finish()
     }
     raf = requestAnimationFrame(frame)
 
@@ -385,7 +416,8 @@ export function Game({
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('blur', onBlur)
       player.setOnEnded(null)
-      player.pause()
+      // A finished battle round plays on and fades out under the next one
+      if (!(done && round)) player.pause()
       fx?.dispose()
     }
   }, [player, song, chart, settings, duel, round, youName, rivalName, startAt, online, onFinish, runId])
@@ -401,7 +433,8 @@ export function Game({
     <div className="game">
       <canvas ref={crowdRef} className="crowd-canvas" />
       <canvas ref={canvasRef} className="game-canvas" width={size.w} height={size.h} />
-      {!player && !error && <div className="overlay">{t.loading}</div>}
+      {!loaded && !error && <div className="overlay">{t.loading}</div>}
+      {children}
       {error && (
         <div className="overlay">
           <p>{t.audioError(error)}</p>

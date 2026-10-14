@@ -1214,6 +1214,88 @@ h3.section {
   justify-content: center;
 }
 
+/* The round card: billed over the stage between melodies, then gone */
+.round-card {
+  position: absolute;
+  z-index: 1;
+  top: 18%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: calc(100% - 32px);
+  padding: 10px 22px 12px;
+  text-align: center;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, rgba(255, 230, 0, 0.18) 1.3px, transparent 1.7px) 0 0 / 8px 8px,
+    rgba(20, 2, 6, 0.82);
+  border: 3px solid var(--cyan);
+  box-shadow: 6px 6px 0 var(--blood);
+  transform: translateX(-50%) rotate(-1.5deg);
+  animation: round-card 4.2s ease-out forwards;
+}
+.round-card.yours {
+  border-color: var(--yellow);
+  box-shadow: 6px 6px 0 var(--red);
+}
+.round-card.sticky {
+  animation: round-card-in 0.35s ease-out;
+}
+.round-card .round-no {
+  font-family: var(--stencil);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.round-card strong {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(1.4rem, 5vw, 2.2rem);
+  line-height: 1.1;
+  color: var(--cyan);
+  text-shadow: 3px 3px 0 #000;
+}
+.round-card.yours strong {
+  color: var(--yellow);
+}
+.round-card .melody {
+  font-size: 0.9rem;
+}
+.round-card .melody b {
+  font-family: var(--display);
+  font-weight: 400;
+  color: var(--yellow);
+}
+.round-card .round-status {
+  margin-top: 4px;
+  font-family: var(--marker);
+  color: var(--muted);
+}
+@keyframes round-card-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) rotate(-1.5deg) scale(1.4);
+  }
+}
+@keyframes round-card {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) rotate(-1.5deg) scale(1.4);
+  }
+  8%,
+  80% {
+    opacity: 1;
+    transform: translateX(-50%) rotate(-1.5deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) rotate(-1.5deg) scale(0.95);
+  }
+}
+
 .round-intro h2 {
   font-size: 2.6rem;
   transform: rotate(-2deg);

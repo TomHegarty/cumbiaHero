@@ -153,6 +153,15 @@ export class SongPlayer {
     else this.pausedAt = t
   }
 
+  /** Fades the whole song out over `seconds`, then lets it go; used to blend one battle round into the next. */
+  fadeOutAndDispose(seconds: number): void {
+    const now = this.ctx.currentTime
+    this.gain.gain.cancelScheduledValues(now)
+    this.gain.gain.setValueAtTime(this.gain.gain.value, now)
+    this.gain.gain.linearRampToValueAtTime(0, now + seconds)
+    window.setTimeout(() => this.dispose(), seconds * 1000 + 50)
+  }
+
   dispose(): void {
     this.stopSource()
     this.playing = false

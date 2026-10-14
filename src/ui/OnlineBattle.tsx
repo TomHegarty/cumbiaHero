@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { loadSongTracks } from '../engine/audio'
 import { afterRound, battleOver, sumStats, type Health, type Side } from '../engine/battle'
 import { damageFor, type DuelResult } from '../engine/duel'
 import type { Grade, JudgeEvent, Stats, TimedNote } from '../engine/judge'
 import { RemotePlayer } from '../engine/remote'
-import { partName, useT } from '../i18n'
+import { useT } from '../i18n'
 import { melodyById } from '../melodies'
 import { FORFEIT_MS, ROUND_INTRO_MS, type Lobby, type RoundResult, type Seat, type WireHit } from '../net/types'
 import type { Settings } from '../settings'
-import { Backdrop } from './Backdrop'
 import { Game, type RoundSpec } from './Game'
+import { RoundCard } from './RoundCard'
 import type { OnlineMatch } from './useLobby'
 
 interface Props {
@@ -19,8 +20,6 @@ interface Props {
   onQuit: () => void
 }
 
-/** How early the game mounts before its lead-in, so the audio is ready on the beat. */
-const MOUNT_EARLY_MS = 1500
 const HIT_FLUSH_MS = 100
 
 const toWire: Record<Grade, WireHit['g']> = { perfect: 'p', good: 'g', miss: 'm' }
@@ -196,78 +195,47 @@ export function OnlineBattle({ match, youName, settings, onDone, onQuit }: Props
   // Local time of the shared start, so both songs line up. Fixed per round: the game restarts if it changes.
   const localStart = useMemo(() => startAt - (match.serverNow() - Date.now()), [startAt, match])
   const melody = melodyById(order[index]?.melodyId ?? '')
+  // Have the next melody's audio ready by the time this one ends
+  const nextSong = melodyById(order[index + 1]?.melodyId ?? '')?.song
+  useEffect(() => {
+    if (nextSong) void loadSongTracks(nextSong).catch(() => {})
+  }, [nextSong])
   if (!melody || doneRef.current) return null
 
-  const playing = finished < index && now >= startAt - MOUNT_EARLY_MS
-
-  if (playing) {
-    return (
-      <Game
-        key={index}
-        song={melody.song}
-        chart={melody.chart}
-        settings={settings}
-        duel
-        round={spec}
-        youName={youName}
-        rivalName={rivalName}
-        rival={yours ? undefined : rivalFactory}
-        onJudgeEvent={yours ? onJudgeEvent : undefined}
-        startAt={localStart}
-        onFinish={onFinish}
-        onQuit={onQuit}
-      />
-    )
-  }
-
-  const pct = (v: number) => `${Math.round(Math.max(0, v) * 100)}%`
+  // One stage for the whole battle: between rounds the card says what's coming while the crowd cheers
   const waiting = finished >= index
-  const secs = Math.max(0, Math.ceil((startAt - MOUNT_EARLY_MS - now) / 1000))
-  const setColumn = (name: string, side: Side) => (
-    <div className={`side ${side}`}>
-      <div className="who">
-        {name} <span>{pct(hp[side])}</span>
-      </div>
-      <ol>
-        {order.flatMap((o, i) =>
-          sideOf(i) === side ? (
-            <li key={i} className={i === index ? 'now' : i < index ? 'done' : undefined}>
-              {melodyById(o.melodyId)?.title}
-            </li>
-          ) : [],
-        )}
-      </ol>
-    </div>
-  )
-
+  const secs = Math.ceil((startAt - now) / 1000)
+  const status = waiting
+    ? t.waitingResult
+    : rivalGone
+      ? t.rivalDropped(rivalName)
+      : secs > 0
+        ? t.startsIn(secs)
+        : null
   return (
-    <>
-      <Backdrop />
-      <div className="panel round-intro">
-        <p className="subtitle">
-          {t.round(index + 1, order.length)} · {t.online}
-        </p>
-        <h2 className={yours ? 'gold' : 'chrome'}>{yours ? t.yourTurn : t.turnOf(rivalName)}</h2>
-        <p className="now-playing">
-          <b>{melody.title}</b> — {melody.artist}
-          <br />
-          <span>
-            {partName(t, melody.part)}
-            {melody.demo && ' · demo'}
-          </span>
-        </p>
-        <div className="sets">
-          {setColumn(youName, 'you')}
-          <div className="vs">VS</div>
-          {setColumn(rivalName, 'rival')}
-        </div>
-        <p className="round-clock" role="status">
-          {waiting ? t.waitingResult : rivalGone ? t.rivalDropped(rivalName) : secs > 0 ? t.startsIn(secs) : t.go}
-        </p>
-        <div className="row center">
-          <button onClick={onQuit}>{t.forfeit}</button>
-        </div>
-      </div>
-    </>
+    <Game
+      song={melody.song}
+      chart={melody.chart}
+      settings={settings}
+      duel
+      round={spec}
+      youName={youName}
+      rivalName={rivalName}
+      rival={yours ? undefined : rivalFactory}
+      onJudgeEvent={yours ? onJudgeEvent : undefined}
+      startAt={localStart}
+      onFinish={onFinish}
+      onQuit={onQuit}
+    >
+      <RoundCard
+        key={index}
+        index={index}
+        total={order.length}
+        yours={yours}
+        rivalName={rivalName}
+        melody={melody}
+        status={status}
+      />
+    </Game>
   )
 }
