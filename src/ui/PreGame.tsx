@@ -3,11 +3,17 @@ import { loadSongTracks, SongPlayer } from '../engine/audio'
 import { SET_SIZE } from '../engine/battle'
 import { SongTiming } from '../engine/chart'
 import { MELODIES, type Melody } from '../melodies'
+import { withCode } from '../net/code'
+import type { LobbyErrorKind } from '../net/types'
 import { cleanName, loadName, NAME_MAX, saveName } from '../settings'
+import { useLobby, type OnlineMatch } from './useLobby'
 
 interface Props {
   volume: number
+  /** Opened from an invite link: join this lobby. */
+  joinCode?: string | null
   onStart: (picks: string[], name: string) => void
+  onOnlineStart: (match: OnlineMatch, picks: string[], name: string) => void
   onBack: () => void
 }
 
@@ -16,11 +22,20 @@ export const DEFAULT_NAME = 'VOS'
 
 const PREVIEW_SECONDS = 8
 
+const LOBBY_ERRORS: Record<LobbyErrorKind | 'closed', string> = {
+  gone: 'Esta batalla ya no está disponible.',
+  closed: 'Tu rival cerró la sala.',
+  full: 'Esta sala ya tiene dos jugadores.',
+  version: 'Tu rival tiene otra versión del juego. Actualizá la página.',
+  offline: 'No pudimos conectarnos. Revisá tu conexión y probá de nuevo.',
+}
+
 /**
- * Everything before a battle: your name, your opponent and the melodies you'll
- * bring, in the order you'll play them.
+ * Everything before a battle: your name, your opponent (El Rayo, or a friend
+ * you invite with a link) and the melodies you'll bring, in the order you'll
+ * play them.
  */
-export function PreGame({ volume, onStart, onBack }: Props) {
+export function PreGame({ volume, joinCode = null, onStart, onOnlineStart, onBack }: Props) {
   const [name, setName] = useState(loadName)
   const [picks, setPicks] = useState<string[]>([])
   const [previewing, setPreviewing] = useState<string | null>(null)
@@ -39,8 +54,27 @@ export function PreGame({ volume, onStart, onBack }: Props) {
   }
   useEffect(() => stopPreview, [])
 
-  const toggle = (id: string) =>
+  const clean = cleanName(name)
+  const lobby = useLobby({
+    joinCode,
+    name: clean,
+    picks,
+    onMatch: (m) => {
+      stopPreview()
+      saveName(clean)
+      onOnlineStart(m, picks, clean)
+    },
+  })
+  const { online, me, rival, countdown } = lobby
+  const seated = online.phase === 'in'
+  const ready = !!me?.ready
+  // Your list is locked while you're marked ready or the countdown runs
+  const locked = ready || countdown !== null
+
+  const toggle = (id: string) => {
+    if (locked) return
     setPicks((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length < SET_SIZE ? [...p, id] : p))
+  }
 
   const listen = (m: Melody) => {
     const again = previewing === m.id
@@ -61,6 +95,119 @@ export function PreGame({ volume, onStart, onBack }: Props) {
   }
 
   const full = picks.length === SET_SIZE
+  const link = seated ? withCode(location.href, online.handle.code) : ''
+  const share = () => {
+    if (navigator.share) void navigator.share({ title: 'CumbiaHero', text: '¡Batallá conmigo!', url: link }).catch(() => {})
+    else void navigator.clipboard?.writeText(link).catch(() => {})
+  }
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    void navigator.clipboard
+      ?.writeText(link)
+      .then(() => {
+        setCopied(true)
+        window.setTimeout(() => setCopied(false), 1500)
+      })
+      .catch(() => {})
+  }
+
+  const status = (s: { ready?: boolean; connected?: boolean; setList?: string[] } | undefined) =>
+    !s
+      ? ''
+      : s.connected === false
+        ? 'Desconectado'
+        : s.ready
+          ? '¡Listo!'
+          : `Eligiendo · ${s.setList?.length ?? 0} de ${SET_SIZE} melodías`
+
+  const opponentCard = () => {
+    if (online.phase === 'connecting') {
+      return (
+        <div className="player-card rival">
+          <span className="tag">Rival</span>
+          <span className="name">…</span>
+          <span className="status">Conectando…</span>
+        </div>
+      )
+    }
+    if (online.phase === 'error') {
+      return (
+        <div className="player-card rival">
+          <span className="tag">Rival</span>
+          <span className="status error">{LOBBY_ERRORS[online.kind]}</span>
+          <button className="secondary small" onClick={lobby.leave}>
+            Jugar contra El Rayo
+          </button>
+        </div>
+      )
+    }
+    if (online.phase === 'in') {
+      if (rival) {
+        return (
+          <div className={`player-card rival${rival.connected === false ? ' away' : ''}`}>
+            <span className="tag">Rival · online</span>
+            <span className="name">{rival.name}</span>
+            <span className="status">{status(rival)}</span>
+            {countdown === null && (
+              <button className="link" onClick={lobby.leave}>
+                {online.handle.seat === 'host' ? 'Volver a El Rayo' : 'Salir de la sala'}
+              </button>
+            )}
+          </div>
+        )
+      }
+      return (
+        <div className="player-card rival invite">
+          <span className="tag">Rival · esperando</span>
+          <span className="status">Mandale este link a quien quieras desafiar:</span>
+          <div className="invite-link">
+            <input readOnly value={link} aria-label="Link de invitación" onFocus={(e) => e.target.select()} />
+            <button className="secondary small" onClick={copy}>
+              {copied ? '¡Copiado!' : 'Copiar'}
+            </button>
+            {'share' in navigator && (
+              <button className="secondary small" onClick={share}>
+                Compartir
+              </button>
+            )}
+          </div>
+          <button className="link" onClick={lobby.leave}>
+            Volver a El Rayo
+          </button>
+        </div>
+      )
+    }
+    return (
+      <div className="player-card rival">
+        <span className="tag">Rival</span>
+        <span className="name">EL RAYO</span>
+        <span className="status">La máquina · trae su propia lista</span>
+        <button className="secondary small" onClick={lobby.invite}>
+          Invitar a alguien
+        </button>
+      </div>
+    )
+  }
+
+  const go = () => {
+    if (seated) return lobby.setReady(!ready)
+    stopPreview()
+    saveName(clean)
+    onStart(picks, clean || DEFAULT_NAME)
+  }
+  // Online, the other player needs to know who you are
+  const canGo = full && (!seated || !!clean) && countdown === null
+  const waitingOn =
+    seated && ready && countdown === null
+      ? rival
+        ? rival.connected === false
+          ? `${rival.name} se desconectó…`
+          : `Esperando a ${rival.name}…`
+        : 'Esperando a que entre tu rival…'
+      : seated && full && !clean
+        ? 'Poné tu nombre para que tu rival sepa quién sos.'
+        : null
+
   return (
     <div className="panel setlist pregame">
       <h2 className="chrome">Antes de la batalla</h2>
@@ -72,20 +219,24 @@ export function PreGame({ volume, onStart, onBack }: Props) {
             className="name"
             value={name}
             maxLength={NAME_MAX}
-            placeholder={DEFAULT_NAME}
+            placeholder={seated ? 'Tu nombre' : DEFAULT_NAME}
             aria-label="Tu nombre"
             autoComplete="nickname"
+            disabled={locked}
             onChange={(e) => setName(e.target.value)}
           />
-          <span className="status">{picks.length} de {SET_SIZE} melodías</span>
+          <span className="status">{seated && me ? status(me) : `${picks.length} de ${SET_SIZE} melodías`}</span>
         </label>
         <div className="vs">VS</div>
-        <div className="player-card rival">
-          <span className="tag">Rival</span>
-          <span className="name">EL RAYO</span>
-          <span className="status">La máquina · trae su propia lista</span>
-        </div>
+        {opponentCard()}
       </div>
+
+      {countdown !== null && (
+        <div className="countdown" role="status">
+          <span>¡Arranca la batalla!</span>
+          <b key={countdown}>{countdown || '¡Ya!'}</b>
+        </div>
+      )}
 
       <h3 className="section">Armá tu lista</h3>
       <p className="hint">Elegí {SET_SIZE} melodías. Las tocás en este orden, turnándote con tu rival.</p>
@@ -94,8 +245,8 @@ export function PreGame({ volume, onStart, onBack }: Props) {
         {MELODIES.map((m) => {
           const n = picks.indexOf(m.id)
           return (
-            <li key={m.id} className={n >= 0 ? 'picked' : full ? 'dim' : undefined}>
-              <button className="pick" onClick={() => toggle(m.id)} aria-pressed={n >= 0}>
+            <li key={m.id} className={n >= 0 ? 'picked' : full || locked ? 'dim' : undefined}>
+              <button className="pick" onClick={() => toggle(m.id)} aria-pressed={n >= 0} disabled={locked}>
                 <span className="num">{n >= 0 ? n + 1 : '+'}</span>
                 <span className="info">
                   <span className="title">{m.title}</span>
@@ -132,26 +283,19 @@ export function PreGame({ volume, onStart, onBack }: Props) {
           )
         })}
       </div>
+      {waitingOn && <p className="waiting">{waitingOn}</p>}
       <div className="row center">
         <button
           onClick={() => {
             stopPreview()
+            lobby.leave()
             onBack()
           }}
         >
           Volver
         </button>
-        <button
-          className="hot"
-          disabled={!full}
-          onClick={() => {
-            stopPreview()
-            const clean = cleanName(name)
-            saveName(clean)
-            onStart(picks, clean || DEFAULT_NAME)
-          }}
-        >
-          ¡Listo!
+        <button className={ready ? 'secondary' : 'hot'} disabled={!canGo} onClick={go}>
+          {ready ? 'Cambiar lista' : '¡Listo!'}
         </button>
       </div>
     </div>

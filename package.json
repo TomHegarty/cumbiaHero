@@ -9,14 +9,17 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "test:rules": "npx -y firebase-tools@15 emulators:exec --only database --project demo-cumbiahero 'vitest run --config vitest.rules.config.ts'"
   },
   "dependencies": {
+    "firebase": "^12.19.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "three": "^0.180.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

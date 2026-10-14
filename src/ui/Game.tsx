@@ -4,8 +4,9 @@ import { afterRound, SET_SIZE, type Health, type Side } from '../engine/battle'
 import { CrowdFx } from '../engine/crowdfx'
 import { SongTiming, timeChart } from '../engine/chart'
 import { AiPlayer, BARS_PER_TURN, damageFor, splitChart, turnIndex, turnOrigin, type DuelResult } from '../engine/duel'
-import { Judge, type Stats } from '../engine/judge'
+import { Judge, type JudgeEvent, type Stats, type TimedNote } from '../engine/judge'
 import { LANE_COUNT, laneForCode } from '../engine/keys'
+import type { RivalPlayer } from '../engine/remote'
 import type { CrowdScene } from '../render/crowd3d'
 import { drawFrame, type Popup } from '../render/highway'
 import { drawVersus } from '../render/versus'
@@ -30,6 +31,17 @@ interface Props {
   round?: RoundSpec
   /** Your name on the versus banner. */
   youName?: string
+  rivalName?: string
+  /** Who plays the rival's notes; El Rayo unless given. Read once per run. */
+  rival?: (notes: TimedNote[]) => RivalPlayer
+  /** Each of your notes as it's judged, for streaming to an online rival. */
+  onJudgeEvent?: (e: JudgeEvent) => void
+  /**
+   * Online: the moment (local clock, ms) the lead-in starts, shared with the
+   * other player. Arriving late skips ahead to where the song should be. There
+   * is no pausing online, since the other player's song keeps going.
+   */
+  startAt?: number
   onFinish: (stats: Stats, duel?: DuelResult) => void
   onQuit: () => void
 }
@@ -39,7 +51,20 @@ const YOU_NAME = 'VOS'
 const RIVAL_NAME = 'EL RAYO'
 const RIVAL_SKILL = 0.85
 
-export function Game({ song, chart, settings, duel, round, youName = YOU_NAME, onFinish, onQuit }: Props) {
+export function Game({
+  song,
+  chart,
+  settings,
+  duel,
+  round,
+  youName = YOU_NAME,
+  rivalName = RIVAL_NAME,
+  rival,
+  onJudgeEvent,
+  startAt,
+  onFinish,
+  onQuit,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const crowdRef = useRef<HTMLCanvasElement>(null)
   const sceneRef = useRef<CrowdScene | null>(null)
@@ -48,6 +73,13 @@ export function Game({ song, chart, settings, duel, round, youName = YOU_NAME, o
   const [error, setError] = useState<string | null>(null)
   const [paused, setPaused] = useState(false)
   const [runId, setRunId] = useState(0)
+  const [quitAsk, setQuitAsk] = useState(false)
+  const online = startAt !== undefined
+  // Callbacks the run reads without restarting when they change identity
+  const live = useRef({ rival, onJudgeEvent })
+  useEffect(() => {
+    live.current = { rival, onJudgeEvent }
+  }, [rival, onJudgeEvent])
 
   useEffect(() => {
     let cancelled = false
@@ -105,7 +137,8 @@ export function Game({ song, chart, settings, duel, round, youName = YOU_NAME, o
         ? splitChart(chart, bpb, 2)
         : [chart, empty]
     const judge = new Judge(timeChart(yourPart, timing))
-    const ai = new AiPlayer(timeChart(rivalPart, timing), RIVAL_SKILL)
+    const rivalNotes = timeChart(rivalPart, timing)
+    const ai: RivalPlayer = live.current.rival?.(rivalNotes) ?? new AiPlayer(rivalNotes, RIVAL_SKILL)
     const aiPressed: boolean[] = Array.from({ length: LANE_COUNT }, () => false)
     const shown: boolean[] = Array.from({ length: LANE_COUNT }, () => false)
     const pressed: boolean[] = Array.from({ length: LANE_COUNT }, () => false)
@@ -141,6 +174,7 @@ export function Game({ song, chart, settings, duel, round, youName = YOU_NAME, o
     player.setLeadLevel(1)
     const leadFollows = (grade: Popup['grade']) => player.setLeadLevel(grade === 'miss' ? 0.08 : 1)
     judge.onJudge((e) => {
+      live.current.onJudgeEvent?.(e)
       leadFollows(e.grade)
       if (e.grade === 'miss') missAt = heardTime()
       youDealt += damageFor(e.grade)
@@ -214,19 +248,23 @@ export function Game({ song, chart, settings, duel, round, youName = YOU_NAME, o
       const age = t - timing.tempo.beatToTime(turn.start)
       return turn.active === 'you'
         ? { text: '¡TU TURNO!', age, hot: true }
-        : { text: `TURNO DE ${RIVAL_NAME}`, age, hot: false }
+        : { text: `TURNO DE ${rivalName}`, age, hot: false }
     }
 
     const finish = () => {
       if (done) return
       done = true
       player.pause()
-      onFinish({ ...judge.stats }, versus ? { youName, rivalName: RIVAL_NAME, you: youHp(), rival: rivalHp() } : undefined)
+      onFinish({ ...judge.stats }, versus ? { youName, rivalName, you: youHp(), rival: rivalHp() } : undefined)
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Escape') {
         e.preventDefault()
+        if (online) {
+          setQuitAsk((q) => !q)
+          return
+        }
         if (player.playing) {
           player.pause()
           setPaused(true)
@@ -252,7 +290,7 @@ export function Game({ song, chart, settings, duel, round, youName = YOU_NAME, o
       judge.release(lane, judgeTime())
     }
     const onBlur = () => {
-      if (player.playing) {
+      if (!online && player.playing) {
         player.pause()
         setPaused(true)
       }
@@ -315,7 +353,7 @@ export function Game({ song, chart, settings, duel, round, youName = YOU_NAME, o
         rivalTrail = Math.max(rival, rivalTrail - 0.006)
         drawVersus(ctx, canvas.width / dpr, {
           youName,
-          rivalName: RIVAL_NAME,
+          rivalName,
           you,
           rival,
           youTrail,
@@ -331,9 +369,16 @@ export function Game({ song, chart, settings, duel, round, youName = YOU_NAME, o
 
     player.setOnEnded(finish)
     setPaused(false)
-    player.play(-LEAD_IN)
+    let startTimer = 0
+    if (startAt === undefined) player.play(-LEAD_IN)
+    else {
+      const wait = startAt - Date.now()
+      if (wait > 0) startTimer = window.setTimeout(() => player.play(-LEAD_IN), wait)
+      else player.play(-LEAD_IN - (wait / 1000) * player.playbackRate)
+    }
 
     return () => {
+      clearTimeout(startTimer)
       cancelAnimationFrame(raf)
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
@@ -342,7 +387,7 @@ export function Game({ song, chart, settings, duel, round, youName = YOU_NAME, o
       player.pause()
       fx?.dispose()
     }
-  }, [player, song, chart, settings, duel, round, youName, onFinish, runId])
+  }, [player, song, chart, settings, duel, round, youName, rivalName, startAt, online, onFinish, runId])
 
   const resume = () => {
     if (!player) return
@@ -360,6 +405,18 @@ export function Game({ song, chart, settings, duel, round, youName = YOU_NAME, o
         <div className="overlay">
           <p>No se pudo cargar el audio: {error}</p>
           <button onClick={onQuit}>Volver</button>
+        </div>
+      )}
+      {quitAsk && (
+        <div className="overlay quit-ask">
+          <h2 className="chrome">¿Abandonar?</h2>
+          <p className="hint">La batalla sigue sonando para tu rival.</p>
+          <div className="stack">
+            <button className="hot" autoFocus onClick={() => setQuitAsk(false)}>
+              Seguir tocando
+            </button>
+            <button onClick={onQuit}>Abandonar</button>
+          </div>
         </div>
       )}
       {paused && (

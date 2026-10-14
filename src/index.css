@@ -1120,6 +1120,78 @@ h3.section {
   }
 }
 
+/* Online: invite link, presence and the shared countdown */
+.player-card button.small {
+  margin-top: 4px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+.player-card button.link {
+  margin-top: 2px;
+  padding: 0;
+  font-family: var(--marker);
+  font-size: 0.75rem;
+  text-transform: none;
+  text-decoration: underline;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+.player-card button.link::before {
+  display: none;
+}
+.player-card.away {
+  opacity: 0.6;
+}
+.player-card .status.error {
+  color: #fff;
+}
+.invite-link {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+.invite-link input {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.75rem;
+}
+.invite-link button.small {
+  margin: 0;
+  flex: none;
+}
+.countdown {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 14px;
+  margin: 14px 0 0;
+  font-family: var(--display);
+  color: var(--yellow);
+}
+.countdown b {
+  font-weight: 400;
+  font-size: 2.6rem;
+  color: var(--red);
+  text-shadow: 3px 3px 0 #000;
+  animation: count-pop 0.35s ease-out;
+}
+@keyframes count-pop {
+  from {
+    transform: scale(1.6);
+  }
+}
+.waiting,
+.round-clock {
+  font-family: var(--marker);
+  color: var(--muted);
+}
+.round-clock {
+  font-size: 1.1rem;
+  color: var(--yellow);
+}
+
 .tray {
   display: flex;
   flex-wrap: wrap;

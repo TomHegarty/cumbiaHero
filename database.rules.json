@@ -1,0 +1,89 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "lobbies": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && !data.exists() && newData.child('hostUid').val() === auth.uid",
+        ".validate": "$code.matches(/^[ABCDEFGHJKMNPQRSTUVWXYZ2-9]{6}$/) && newData.hasChildren(['hostUid', 'createdAt', 'expiresAt', 'protocol', 'status', 'players'])",
+        "hostUid": {
+          ".validate": "newData.isString()"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() > now - 60000 && newData.val() < now + 60000"
+        },
+        "expiresAt": {
+          ".validate": "newData.isNumber() && newData.val() <= newData.parent().child('createdAt').val() + 7200000"
+        },
+        "protocol": {
+          ".validate": "newData.isNumber()"
+        },
+        "status": {
+          ".write": "auth != null && auth.uid === data.parent().child('hostUid').val()",
+          ".validate": "newData.isString() && newData.val().matches(/^(waiting|countdown|playing|done|closed)$/)"
+        },
+        "players": {
+          "$seat": {
+            ".write": "auth != null && data.parent().parent().child('expiresAt').val() > now && (data.child('uid').val() === auth.uid || (!data.exists() && $seat === 'guest' && data.parent().parent().child('status').val() === 'waiting' && data.parent().parent().child('hostUid').val() !== auth.uid))",
+            ".validate": "$seat.matches(/^(host|guest)$/) && newData.hasChildren(['uid', 'name', 'ready'])",
+            "uid": {
+              ".validate": "newData.val() === auth.uid && ($seat === 'host') === (newData.val() === newData.parent().parent().parent().child('hostUid').val())"
+            },
+            "name": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 14"
+            },
+            "setList": {
+              "$i": {
+                ".validate": "$i.matches(/^[0-2]$/) && newData.isString() && newData.val().length <= 64"
+              }
+            },
+            "ready": {
+              ".validate": "newData.isBoolean() && (newData.val() === false || newData.parent().child('setList').hasChildren(['0', '1', '2']))"
+            },
+            "connected": {
+              ".validate": "newData.isBoolean()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "battle": {
+          ".write": "auth != null && auth.uid === data.parent().child('hostUid').val()",
+          "startAt": {
+            ".validate": "newData.isNumber()"
+          },
+          "round": {
+            ".validate": "newData.isNumber()"
+          },
+          "order": {
+            "$n": {
+              ".validate": "$n.matches(/^[0-5]$/) && newData.hasChildren(['uid', 'melodyId'])",
+              "uid": {
+                ".validate": "newData.isString()"
+              },
+              "melodyId": {
+                ".validate": "newData.isString() && newData.val().length <= 64"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "rounds": {
+          "$n": {
+            ".write": "auth != null && auth.uid === data.parent().parent().child('battle/order/' + $n + '/uid').val()"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}

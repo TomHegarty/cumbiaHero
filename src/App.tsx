@@ -12,7 +12,10 @@ import { Editor } from './ui/Editor'
 import { Game } from './ui/Game'
 import { Menu } from './ui/Menu'
 import { Results } from './ui/Results'
+import { codeFromUrl, withCode } from './net/code'
+import { OnlineBattle } from './ui/OnlineBattle'
 import { PreGame } from './ui/PreGame'
+import type { OnlineMatch } from './ui/useLobby'
 
 type Screen =
   | { name: 'menu' }
@@ -20,12 +23,18 @@ type Screen =
   | { name: 'play'; song: Song; chartKey: string; chart: Chart; fromEditor: boolean }
   | { name: 'results'; song: Song; chartKey: string; chart: Chart; stats: Stats; duel?: DuelResult; newBest: boolean; fromEditor: boolean }
   | { name: 'editor'; song: Song; chartKey: string; chart: Chart }
-  | { name: 'pregame' }
+  | { name: 'pregame'; joinCode?: string | null }
+  | { name: 'online'; match: OnlineMatch; youName: string }
+  | { name: 'online-results'; rivalName: string; stats: Stats; duel: DuelResult; forfeit: boolean }
   | { name: 'battle'; yours: string[]; rivals: string[]; youName: string; run: number }
   | { name: 'battle-results'; yours: string[]; rivals: string[]; youName: string; stats: Stats; duel: DuelResult }
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>({ name: 'menu' })
+  // An invite link opens straight into that lobby's pre-game screen
+  const [screen, setScreen] = useState<Screen>(() => {
+    const joinCode = codeFromUrl(location.href)
+    return joinCode ? { name: 'pregame', joinCode } : { name: 'menu' }
+  })
   const [settings, setSettings] = useState<Settings>(loadSettings)
   // Unsaved editor work survives test plays and trips to the menu.
   const [drafts, setDrafts] = useState<Record<string, Chart>>({})
@@ -54,8 +63,17 @@ export default function App() {
     [],
   )
 
+  const onOnlineDone = useCallback(
+    (stats: Stats, duel: DuelResult, rivalName: string, forfeit: boolean) => {
+      clearLobbyFromUrl()
+      setScreen({ name: 'online-results', rivalName, stats, duel, forfeit })
+    },
+    [],
+  )
+
   // The battle draws its own backdrop between rounds
-  const backdrop = screen.name !== 'play' && screen.name !== 'editor' && screen.name !== 'battle'
+  const backdrop =
+    screen.name !== 'play' && screen.name !== 'editor' && screen.name !== 'battle' && screen.name !== 'online'
   return (
     <>
       {backdrop && <Backdrop />}
@@ -127,8 +145,11 @@ export default function App() {
       case 'pregame':
         return (
           <PreGame
+            key={screen.joinCode ?? 'new'}
             volume={settings.volume}
+            joinCode={screen.joinCode}
             onBack={() => setScreen({ name: 'menu' })}
+            onOnlineStart={(match, _picks, youName) => setScreen({ name: 'online', match, youName })}
             onStart={(yours, youName) =>
               startBattle(
                 yours,
@@ -140,6 +161,32 @@ export default function App() {
                 youName,
               )
             }
+          />
+        )
+      case 'online':
+        return (
+          <OnlineBattle
+            match={screen.match}
+            youName={screen.youName}
+            settings={settings}
+            onDone={onOnlineDone}
+            onQuit={() => {
+              clearLobbyFromUrl()
+              setScreen({ name: 'pregame' })
+            }}
+          />
+        )
+      case 'online-results':
+        return (
+          <Results
+            subtitle={
+              screen.forfeit ? `${screen.rivalName} abandonó la batalla` : `Batalla online contra ${screen.rivalName}`
+            }
+            stats={screen.stats}
+            duel={screen.duel}
+            newBest={false}
+            onRetry={() => setScreen({ name: 'pregame' })}
+            onMenu={() => setScreen({ name: 'menu' })}
           />
         )
       case 'battle':
@@ -184,5 +231,13 @@ export default function App() {
         )
       }
     }
+  }
+}
+
+function clearLobbyFromUrl() {
+  try {
+    history.replaceState(history.state, '', withCode(location.href, null))
+  } catch {
+    // the address bar stays as it was
   }
 }
