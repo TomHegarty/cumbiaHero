@@ -864,46 +864,6 @@ select {
   align-items: center;
   justify-content: center;
 }
-.volume {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--display);
-  color: var(--yellow);
-  text-shadow: 2px 2px 0 #000;
-}
-.volume .pct {
-  min-width: 3.2em;
-  text-align: left;
-}
-.volume input[type='range'] {
-  appearance: none;
-  width: 160px;
-  height: 12px;
-  padding: 0;
-  border: 2px solid #000;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #e4002b, #ff7a00, #ffe600);
-  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.5);
-}
-.volume input[type='range']::-webkit-slider-thumb {
-  appearance: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid #000;
-  background: radial-gradient(circle at 35% 30%, #fff, #d6cbc0 40%, #6a5a50);
-  cursor: pointer;
-}
-.volume input[type='range']::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid #000;
-  background: radial-gradient(circle at 35% 30%, #fff, #d6cbc0 40%, #6a5a50);
-  cursor: pointer;
-}
-
 /* ---------- Set-list battles ---------- */
 
 button.battle-cta {
@@ -1501,5 +1461,112 @@ h3.section {
   }
   .lang-switch + .panel {
     max-height: calc(100% - 150px);
+  }
+}
+
+/* ---------- Volume (every screen) ---------- */
+
+.volume-control {
+  position: fixed;
+  top: 12px;
+  left: 14px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 6px;
+  background:
+    var(--noise),
+    linear-gradient(180deg, #2a0008, #12020a);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.6);
+  font-family: var(--display);
+  color: var(--yellow);
+  text-shadow: 2px 2px 0 #000;
+}
+.volume-control .speaker {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  box-shadow: none;
+  color: var(--yellow);
+  filter: drop-shadow(2px 2px 0 #000);
+}
+.volume-control .speaker::before {
+  content: none;
+}
+.volume-control .speaker svg {
+  width: 26px;
+  height: 26px;
+}
+.volume-control .speaker:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+.volume-control .pct {
+  min-width: 2.8em;
+  font-size: 0.9rem;
+  text-align: right;
+}
+.volume-control input[type='range'] {
+  appearance: none;
+  width: 130px;
+  height: 12px;
+  padding: 0;
+  border: 2px solid #000;
+  border-radius: 999px;
+  /* the hot stripe fills up to the knob; the rest is an empty groove */
+  background:
+    linear-gradient(90deg, #e4002b, #ff7a00, #ffe600) 0 0 / var(--fill) 100% no-repeat,
+    #2b1a1f;
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+.volume-control input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #000;
+  background: radial-gradient(circle at 35% 30%, #fff, #d6cbc0 40%, #6a5a50);
+  cursor: pointer;
+}
+.volume-control input[type='range']::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #000;
+  background: radial-gradient(circle at 35% 30%, #fff, #d6cbc0 40%, #6a5a50);
+  cursor: pointer;
+}
+/* the editor's toolbar owns the top edge, so the knob drops to the bottom corner */
+#root:has(> .editor) > .volume-control {
+  top: auto;
+  left: auto;
+  right: 14px;
+  bottom: 44px;
+}
+@media (max-width: 720px) {
+  .volume-control {
+    top: 8px;
+    left: 8px;
+    gap: 4px;
+    padding: 3px 8px 3px 2px;
+  }
+  .volume-control input[type='range'] {
+    width: 84px;
+  }
+  .volume-control .pct {
+    display: none;
+  }
+  /* the flags step aside to the right so the two share the top row */
+  #root:has(> .volume-control) > .lang-switch {
+    align-self: flex-end;
+    margin-right: 8px;
   }
 }

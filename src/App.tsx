@@ -1,7 +1,8 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Stats } from './engine/judge'
 import { rivalSetList } from './engine/battle'
 import type { DuelResult } from './engine/duel'
+import { setMasterVolume } from './engine/audio'
 import { MELODIES } from './melodies'
 import { useT } from './i18n'
 import { loadSettings, saveBest, saveSettings, type Settings } from './settings'
@@ -14,6 +15,7 @@ import { Game } from './ui/Game'
 import { LangSwitch } from './ui/LangSwitch'
 import { Menu } from './ui/Menu'
 import { Results } from './ui/Results'
+import { VolumeControl } from './ui/VolumeControl'
 import { codeFromUrl, withCode } from './net/code'
 import { OnlineBattle } from './ui/OnlineBattle'
 import { PreGame } from './ui/PreGame'
@@ -39,6 +41,14 @@ export default function App() {
     return joinCode ? { name: 'pregame', joinCode } : { name: 'menu' }
   })
   const [settings, setSettings] = useState<Settings>(loadSettings)
+  // One volume for every screen, kept with the other settings
+  useEffect(() => setMasterVolume(settings.volume), [settings.volume])
+  const setVolume = (volume: number) =>
+    setSettings((s) => {
+      const next = { ...s, volume }
+      saveSettings(next)
+      return next
+    })
   // Unsaved editor work survives test plays and trips to the menu.
   const [drafts, setDrafts] = useState<Record<string, Chart>>({})
 
@@ -82,6 +92,7 @@ export default function App() {
       {backdrop && <Backdrop />}
       {backdrop && <LangSwitch />}
       {renderScreen()}
+      <VolumeControl volume={settings.volume} onVolume={setVolume} />
     </>
   )
 
@@ -91,12 +102,6 @@ export default function App() {
         return (
           <Menu
             offsetMs={settings.offsetMs}
-          volume={settings.volume}
-          onVolume={(volume) => {
-            const next = { ...settings, volume }
-            saveSettings(next)
-            setSettings(next)
-          }}
             onPlay={(song, key) => play(song, key, song.charts[key])}
             onCalibrate={() => setScreen({ name: 'calibrate' })}
             onBattle={() => setScreen({ name: 'pregame' })}
@@ -150,7 +155,6 @@ export default function App() {
         return (
           <PreGame
             key={screen.joinCode ?? 'new'}
-            volume={settings.volume}
             joinCode={screen.joinCode}
             onBack={() => setScreen({ name: 'menu' })}
             onOnlineStart={(match, _picks, youName) => setScreen({ name: 'online', match, youName })}
