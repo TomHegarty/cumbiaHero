@@ -20,6 +20,7 @@ export const BARS_PER_TURN = 4
 
 /** Final health of each side when the song ends. */
 export interface DuelResult {
+  youName: string
   rivalName: string
   you: number
   rival: number
@@ -102,7 +103,7 @@ export class AiPlayer {
         const at = grade === 'miss' ? n.time + GOOD_WINDOW : n.time + (grade === 'good' ? PERFECT_WINDOW : 0)
         if (t < at) break
         this.states[i] = grade === 'miss' ? 'missed' : n.end > n.time ? 'holding' : 'hit'
-        for (const fn of this.listeners) fn({ grade, lane: n.lane, time: t })
+        for (const fn of this.listeners) fn({ grade, lane: n.lane, time: t, index: i })
       }
       if (this.states[i] === 'holding' && t >= n.end) this.states[i] = 'held'
     }

@@ -35,10 +35,12 @@ export function Menu({ onPlay, onCalibrate, onBattle, onEditor, offsetMs, volume
       </p>
 
       <button className="hot battle-cta" onClick={onBattle}>
-        ¡Batalla de melodías!
-        <small>Armá tu lista de 3 y enfrentá a El Rayo</small>
+        ¡A batallar!
+        <small>Armá tu lista de 3 y elegí tu rival</small>
       </button>
 
+      <h3 className="section">Práctica</h3>
+      <p className="hint">Una canción entera, turnándote con El Rayo cada 4 compases.</p>
       <ul className="songs">
         {SONGS.map((song, i) =>
           Object.entries(song.charts).map(([key, chart]) => (

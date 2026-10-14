@@ -1033,6 +1033,165 @@ button.battle-cta {
   }
 }
 
+/* ---------- Pre-game: you vs your opponent ---------- */
+
+h3.section {
+  margin: 22px 0 2px;
+  font-family: var(--stencil);
+  font-weight: 400;
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+.lineup {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+.lineup .vs {
+  align-self: center;
+  font-family: var(--display);
+  font-size: 1.8rem;
+  color: var(--red);
+  text-shadow: 2px 2px 0 #000;
+}
+.player-card {
+  flex: 1;
+  max-width: 300px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 14px 12px;
+  text-align: left;
+  border: 3px solid var(--yellow);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: 4px 4px 0 var(--red);
+}
+.player-card.rival {
+  border-color: var(--cyan);
+  box-shadow: 4px 4px 0 var(--blood);
+}
+.player-card .tag {
+  font-family: var(--stencil);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.player-card .name {
+  width: 100%;
+  font-family: var(--display);
+  font-size: 1.3rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+.player-card.rival .name {
+  color: var(--cyan);
+}
+.player-card input.name {
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.player-card input.name::placeholder {
+  color: rgba(255, 230, 0, 0.45);
+}
+.player-card .status {
+  font-family: var(--marker);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+@media (max-width: 520px) {
+  .lineup {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .player-card {
+    max-width: none;
+  }
+  .lineup .vs {
+    font-size: 1.3rem;
+  }
+}
+
+/* Online: invite link, presence and the shared countdown */
+.player-card button.small {
+  margin-top: 4px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+.player-card button.link {
+  margin-top: 2px;
+  padding: 0;
+  font-family: var(--marker);
+  font-size: 0.75rem;
+  text-transform: none;
+  text-decoration: underline;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+.player-card button.link::before {
+  display: none;
+}
+.player-card.away {
+  opacity: 0.6;
+}
+.player-card .status.error {
+  color: #fff;
+}
+.invite-link {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+.invite-link input {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.75rem;
+}
+.invite-link button.small {
+  margin: 0;
+  flex: none;
+}
+.countdown {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 14px;
+  margin: 14px 0 0;
+  font-family: var(--display);
+  color: var(--yellow);
+}
+.countdown b {
+  font-weight: 400;
+  font-size: 2.6rem;
+  color: var(--red);
+  text-shadow: 3px 3px 0 #000;
+  animation: count-pop 0.35s ease-out;
+}
+@keyframes count-pop {
+  from {
+    transform: scale(1.6);
+  }
+}
+.waiting,
+.round-clock {
+  font-family: var(--marker);
+  color: var(--muted);
+}
+.round-clock {
+  font-size: 1.1rem;
+  color: var(--yellow);
+}
+
 .tray {
   display: flex;
   flex-wrap: wrap;

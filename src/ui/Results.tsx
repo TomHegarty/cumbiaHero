@@ -62,7 +62,7 @@ function DuelVerdict({ duel }: { duel: DuelResult }) {
     <div className={`duel-verdict ${tie ? 'tie' : won ? 'won' : 'lost'}`}>
       <strong>{tie ? '¡EMPATE!' : won ? `¡LE GANASTE A ${duel.rivalName}!` : `${duel.rivalName} TE GANÓ`}</strong>
       <span>
-        VOS {pct(duel.you)} · {duel.rivalName} {pct(duel.rival)}
+        {duel.youName} {pct(duel.you)} · {duel.rivalName} {pct(duel.rival)}
       </span>
     </div>
   )

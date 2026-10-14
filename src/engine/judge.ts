@@ -27,6 +27,8 @@ export interface JudgeEvent {
   grade: Grade
   lane: number
   time: number
+  /** Which note, as an index into the player's time-sorted notes. */
+  index: number
 }
 
 export interface Stats {
@@ -124,7 +126,7 @@ export class Judge {
     } else {
       this.states[best] = 'hit'
     }
-    this.emit({ grade, lane, time: t })
+    this.emit({ grade, lane, time: t, index: best })
     this.advanceCursor()
     return grade
   }
@@ -158,7 +160,7 @@ export class Judge {
         this.states[i] = 'missed'
         this.stats.miss++
         this.stats.combo = 0
-        this.emit({ grade: 'miss', lane: n.lane, time: t })
+        this.emit({ grade: 'miss', lane: n.lane, time: t, index: i })
       }
     }
     this.advanceCursor()
