@@ -32,7 +32,8 @@ One file per song, named by its library id (`songs-in/` is git-ignored):
 ```sh
 python3 -m venv .venv-melodies
 .venv-melodies/bin/pip install --index-url https://download.pytorch.org/whl/cpu torch torchaudio
-.venv-melodies/bin/pip install demucs librosa soundfile numpy
+.venv-melodies/bin/pip install demucs librosa soundfile numpy onnxruntime pretty_midi resampy mir_eval
+.venv-melodies/bin/pip install --no-deps basic-pitch   # note transcription; its TensorFlow pin isn't needed
 ```
 
 ffmpeg must be on the PATH (for the MP3s).
@@ -61,6 +62,27 @@ Per song the script writes:
   before the section to a second after it
 - `src/melodies/clips/<id>.json`, the clip's tempo, beat 1, groove and chart
 
+### How the chart is made
+
+The chart follows the lead track, the synth on its own, since that is what
+drops out when you miss ([`melody_chart.py`](melody_chart.py)):
+
+- **Rhythm:** every attack you can hear in the lead track is a note, and
+  nothing else is.
+- **Pitch:** [basic-pitch](https://github.com/spotify/basic-pitch) transcribes
+  every voice, and each note takes the top voice at its attack, since the
+  synth is often stacked in chords or octaves.
+- **Lanes:** each distinct pitch gets its own lane, low to high, so the same
+  note is always the same key and a rising line moves right.
+- **Timing:** the beat grid is nudged (up to an eighth of a beat, plus swing)
+  to where the synth actually sits, which can be behind the drums.
+
+To re-chart clips you've already built, without separating or cutting again:
+
+```sh
+.venv-melodies/bin/python tools/melodies/build_melody.py --all --chart-only
+```
+
 ### When something's off
 
 - **Notes early or late everywhere:** the tempo or beat 1 was misread. Pass
@@ -70,7 +92,7 @@ Per song the script writes:
   different stem. Default is `other`; stacked synth chords often land in
   `vocals`. Try `--lead-stems other vocals` (or `piano`), and save the choice
   in the song's `leadStems` in `library.json`.
-- **Too easy / too hard:** `--min-gap 1` charts every 16th; the default `2`
-  is 8ths.
+- **Too hard:** the default charts every synth attack, 16ths included;
+  `--min-gap 2` keeps only the strongest note per 8th.
 
 Fine-tune any chart in the in-game editor afterwards if needed.
