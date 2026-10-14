@@ -5,6 +5,7 @@ import { Judge, type Stats } from '../engine/judge'
 import { LANE_COUNT, laneForCode } from '../engine/keys'
 import type { CrowdScene } from '../render/crowd3d'
 import { drawFrame, type Popup } from '../render/highway'
+import { drawVersus } from '../render/versus'
 import type { Settings } from '../settings'
 import type { Chart, Song } from '../songs/types'
 import { useCanvasSize } from './useCanvasSize'
@@ -18,6 +19,10 @@ interface Props {
 }
 
 const LEAD_IN = 2
+const RIVAL_NAME = 'EL RAYO'
+/** Health lost per dropped note and regained per hit, for the duel banner. */
+const MISS_DAMAGE = 0.08
+const HIT_HEAL = 0.02
 
 export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -83,7 +88,22 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
     const heardTime = () => player.currentTime - (actx.outputLatency || 0) * player.playbackRate
     const judgeTime = () => heardTime() - offset
 
+    // Duel health: drops are your damage, every hit chips away at the rival
+    let youHp = 1
+    let youTrail = 1
+    let rivalTrail = 1
+    let dealt = 0
+    let missAt = -Infinity
+    const totalNotes = Math.max(1, judge.notes.length)
+
     judge.onJudge((e) => {
+      if (e.grade === 'miss') {
+        youHp = Math.max(0, youHp - MISS_DAMAGE)
+        missAt = heardTime()
+      } else {
+        youHp = Math.min(1, youHp + HIT_HEAL)
+        dealt += e.grade === 'perfect' ? 1 : 0.6
+      }
       popups.push({ grade: e.grade, lane: e.lane, at: heardTime() })
       if (popups.length > 24) popups.shift()
     })
@@ -150,6 +170,7 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
           beat: timing.tempo.timeToBeat(t),
           combo: judge.stats.combo,
           saborActive: judge.stats.saborActive,
+          missAt,
         })
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -167,6 +188,18 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
         multiplier: judge.multiplier,
         hud: true,
         background: !scene,
+      })
+      const rivalHp = 1 - dealt / totalNotes
+      youTrail = Math.max(youHp, youTrail - 0.006)
+      rivalTrail = Math.max(rivalHp, rivalTrail - 0.006)
+      drawVersus(ctx, canvas.width / dpr, {
+        youName: 'VOS',
+        rivalName: RIVAL_NAME,
+        you: youHp,
+        rival: rivalHp,
+        youTrail,
+        rivalTrail,
+        secondsLeft: endTime - t,
       })
       if (player.playing && t >= endTime) finish()
     }

@@ -69,6 +69,8 @@ export interface CrowdState {
   beat: number
   combo: number
   saborActive: boolean
+  /** Song time of the player's most recent miss, so the rival can gloat. */
+  missAt?: number
 }
 
 export function drawCrowd(ctx: CanvasRenderingContext2D, w: number, h: number, s: CrowdState): void {

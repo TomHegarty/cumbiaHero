@@ -14,8 +14,8 @@ const SKIN = ['#f1c9a5', '#dcab82', '#c08a5e', '#9a6744', '#7a4f31']
 const HAIR = ['#120c08', '#1e130b', '#3a2414', '#d9c08a']
 const CELESTE = '#75aadb'
 
-type Pose = 'bothUp' | 'pump' | 'clap' | 'batons' | 'flag' | 'phone' | 'shirt' | 'point'
-type Top = 'black' | 'hoodie' | 'argentina' | 'white' | 'bare'
+type Pose = 'bothUp' | 'pump' | 'clap' | 'batons' | 'flag' | 'phone' | 'shirt' | 'point' | 'play'
+type Top = 'black' | 'hoodie' | 'argentina' | 'white' | 'tracksuit' | 'bare'
 type Hat = 'cap' | 'capBack' | 'galera' | 'short' | 'shaved'
 
 interface Fan {
@@ -28,6 +28,8 @@ interface Fan {
   pose: Pose
   phase: number
   offbeat: boolean
+  /** Set on the two duelling keyboardists. */
+  role?: 'you' | 'rival'
 }
 
 function rng(seed: number): () => number {
@@ -79,6 +81,16 @@ const TOP_TEXTURES: Record<Exclude<Top, 'bare'>, () => THREE.Texture> = {
       }
       g.fillStyle = '#1a2a5a'
       g.fillRect(40, 10, 8, 8)
+    }),
+  tracksuit: () =>
+    canvasTexture(64, 64, (g) => {
+      g.fillStyle = '#b3001e'
+      g.fillRect(0, 0, 64, 64)
+      g.fillStyle = '#ffffff'
+      g.fillRect(4, 0, 3, 64)
+      g.fillRect(57, 0, 3, 64)
+      g.fillStyle = '#d8d8d8'
+      g.fillRect(31, 0, 2, 64)
     }),
   white: () =>
     canvasTexture(64, 64, (g) => {
@@ -278,7 +290,7 @@ export class CrowdScene {
     add(gold, 0.62, 0.12, 0.2, 0, 1.5)
     const k = add(keys, 0.56, 0.02, 0.14, 0, 1.565)
     k.rotation.x = -0.2
-    t.position.set(-2.9, 0, -0.6)
+    t.position.set(-5.4, 0, -2.6)
     t.rotation.y = 0.35
     this.scene.add(t)
   }
@@ -304,6 +316,7 @@ export class CrowdScene {
     const color = (c: string) => mat(c, () => new THREE.MeshToonMaterial({ color: c }))
     const topMat = (t: Exclude<Top, 'bare'>) =>
       mat(`top:${t}`, () => new THREE.MeshToonMaterial({ map: this.own(TOP_TEXTURES[t]()) }))
+    const gold = mat('gold', () => new THREE.MeshPhongMaterial({ color: '#f2c14e', emissive: '#7a5200', shininess: 80 }))
     const screen = mat('screen', () => new THREE.MeshBasicMaterial({ color: '#cfe8ff' }))
     const flagMat = mat('flag', () => new THREE.MeshToonMaterial({ map: this.own(ARG_FLAG()), side: THREE.DoubleSide }))
     const galeraMat = mat(
@@ -338,7 +351,10 @@ export class CrowdScene {
     }
 
     // A tight knot of hinchas either side behind the player, two deep
-    const spots: { x: number; z: number; top: Top; hat: Hat; pose: Pose }[] = [
+    const spots: { x: number; z: number; top: Top; hat: Hat; pose: Pose; role?: 'you' | 'rival'; face?: number }[] = [
+      // The two keyboardists, either side of the track, angled in towards each other
+      { x: -3.6, z: -0.4, top: 'hoodie', hat: 'cap', pose: 'play', role: 'you', face: 1.05 },
+      { x: 3.6, z: -0.4, top: 'tracksuit', hat: 'capBack', pose: 'play', role: 'rival', face: -1.05 },
       { x: -3.9, z: -3.6, top: 'black', hat: 'capBack', pose: 'point' },
       { x: -4.6, z: -4.1, top: 'argentina', hat: 'galera', pose: 'batons' },
       { x: -5.3, z: -3.8, top: 'hoodie', hat: 'cap', pose: 'clap' },
@@ -355,11 +371,11 @@ export class CrowdScene {
       { x: 5.8, z: -5.0, top: 'white', hat: 'cap', pose: 'pump' },
     ]
     for (const spot of spots) {
-      const { x, z, top, hat, pose } = spot
+      const { x, z, top, hat, pose, role } = spot
       const skin = color(pick(SKIN))
       const root = new THREE.Group()
       root.position.set(x, 0, z)
-      root.rotation.y = Math.atan2(-x, this.camera.position.z - z)
+      root.rotation.y = spot.face ?? Math.atan2(-x, this.camera.position.z - z)
       root.scale.setScalar(0.94 + r() * 0.14)
       const body = new THREE.Group()
       root.add(body)
@@ -450,14 +466,66 @@ export class CrowdScene {
         const phone = part(box, color('#111'), 0.09, 0.16, 0.02, 0, -0.7, 0.06)
         phone.add(part(box, screen, 0.8, 0.85, 1.2, 0, 0, 0.3))
         armR.add(phone)
+      } else if (pose === 'play') {
+        this.addKeyboard(root, role === 'rival' ? '#c9ccd2' : '#2a2b30')
+        if (role === 'rival') {
+          const chain = new THREE.Mesh(this.own(new THREE.TorusGeometry(0.13, 0.018, 6, 16)), gold)
+          chain.position.set(0, 1.44, 0.14)
+          chain.rotation.x = 0.4
+          body.add(chain)
+        }
       } else if (pose === 'batons') {
         // Inflatable aplaudidores, one in each hand
         for (const a of [armL, armR]) a.add(part(cyl, color(CELESTE), 0.09, 0.8, 0.09, 0, -0.95, 0))
       }
 
       this.scene.add(root)
-      this.fans.push({ root, body, head, armL, armR, prop, pose, phase: r() * 0.25, offbeat: r() < 0.2 })
+      this.fans.push({ root, body, head, armL, armR, prop, pose, role, phase: role ? 0 : r() * 0.25, offbeat: !role && r() < 0.2 })
     }
+  }
+
+  /** A keyboard on an X-stand in front of a player, placed in the room (it doesn't jump with them). */
+  private addKeyboard(player: THREE.Group, bodyColor: string): void {
+    const box = this.own(new THREE.BoxGeometry(1, 1, 1))
+    const metal = this.own(new THREE.MeshLambertMaterial({ color: '#1a1a1a' }))
+    const shell = this.own(new THREE.MeshLambertMaterial({ color: bodyColor }))
+    const keys = this.own(
+      new THREE.MeshLambertMaterial({
+        map: this.own(
+          canvasTexture(256, 32, (g) => {
+            g.fillStyle = '#fafafa'
+            g.fillRect(0, 0, 256, 32)
+            g.fillStyle = '#111'
+            for (let i = 0; i < 36; i++) {
+              g.fillRect(i * 7, 0, 1, 32)
+              if (i % 7 !== 2 && i % 7 !== 6) g.fillRect(i * 7 + 4, 0, 4, 19)
+            }
+          }),
+        ),
+      }),
+    )
+    const rig = new THREE.Group()
+    const add = (m: THREE.Material, sx: number, sy: number, sz: number, x: number, y: number, z: number) => {
+      const mesh = new THREE.Mesh(box, m)
+      mesh.scale.set(sx, sy, sz)
+      mesh.position.set(x, y, z)
+      rig.add(mesh)
+      return mesh
+    }
+    // X-stand legs
+    for (const s of [-1, 1]) {
+      for (const lean of [-0.55, 0.55]) {
+        const leg = add(metal, 0.04, 1.05, 0.04, s * 0.42, 0.45, 0)
+        leg.rotation.x = lean
+      }
+    }
+    add(shell, 1.1, 0.09, 0.34, 0, 0.92, 0)
+    add(keys, 1.0, 0.012, 0.16, 0, 0.97, 0.06)
+    add(metal, 1.0, 0.03, 0.1, 0, 0.975, -0.1)
+    rig.position.copy(player.position)
+    rig.rotation.y = player.rotation.y
+    rig.translateZ(0.5)
+    this.scene.add(rig)
   }
 
   private size = { w: 0, h: 0 }
@@ -525,6 +593,23 @@ export class CrowdScene {
           f.armR.rotation.x = -2.4
           f.armR.rotation.z = 0.2
           break
+        case 'play': {
+          // Hands working the keys, heads nodding on the beat
+          f.root.position.y = bounce * 0.04
+          f.head.rotation.x = 0.15 + bounce * 0.25 * energy
+          const run = Math.sin(s.time * 15 + (f.role === 'rival' ? 1 : 0))
+          f.armL.rotation.x = -1.15 + run * 0.06
+          f.armR.rotation.x = -1.15 - run * 0.06
+          f.armL.rotation.z = -0.25 + run * 0.08
+          f.armR.rotation.z = 0.25 + run * 0.08
+          // The rival throws a fist up when you drop a note
+          const sinceMiss = s.time - (s.missAt ?? -Infinity)
+          if (f.role === 'rival' && sinceMiss >= 0 && sinceMiss < 0.7) {
+            f.armR.rotation.set(0, 0, 2.9)
+            f.head.rotation.x = -0.25
+          }
+          break
+        }
         case 'point':
           // Pointing straight at the player, jabbing on the beat
           f.armL.rotation.z = -(2.5 + wave * 0.2) * up
