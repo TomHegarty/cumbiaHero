@@ -119,11 +119,11 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
   const l = layout(w, h)
   const zOf = (t: number) => (t - f.time) / f.lookahead
 
-  // Background: deep blue with a slowly turning sunburst behind the horizon
+  // Background: burnt cumbia red with a slowly turning sunburst behind the horizon
   const bg = ctx.createLinearGradient(0, 0, 0, h)
-  bg.addColorStop(0, '#1a0f8a')
-  bg.addColorStop(0.5, '#0d0650')
-  bg.addColorStop(1, '#05021e')
+  bg.addColorStop(0, '#a3001f')
+  bg.addColorStop(0.5, '#4a000e')
+  bg.addColorStop(1, '#140204')
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, w, h)
   drawSunburst(ctx, l.cx, l.topY, Math.hypot(w, h), f.time, f.stats.saborActive)
@@ -142,8 +142,8 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
     body.addColorStop(0, 'rgba(120, 10, 0, 0.85)')
     body.addColorStop(1, 'rgba(255, 110, 0, 0.55)')
   } else {
-    body.addColorStop(0, 'rgba(0, 0, 20, 0.92)')
-    body.addColorStop(1, 'rgba(10, 8, 60, 0.88)')
+    body.addColorStop(0, 'rgba(20, 2, 4, 0.92)')
+    body.addColorStop(1, 'rgba(48, 6, 12, 0.88)')
   }
   ctx.fillStyle = body
   ctx.fill()

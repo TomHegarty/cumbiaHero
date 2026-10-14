@@ -143,7 +143,7 @@ export function Editor({ song, chart, onTest, onBack }: Props) {
       const w = canvas.width / dpr
       const h = canvas.height / dpr
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.fillStyle = '#0d0020'
+      ctx.fillStyle = '#1a0306'
       ctx.fillRect(0, 0, w, h)
       const laneW = Math.min(70, (w - 80) / LANE_COUNT)
       const x0 = (w - laneW * LANE_COUNT) / 2
