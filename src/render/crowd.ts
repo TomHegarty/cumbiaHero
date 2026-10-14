@@ -1,7 +1,7 @@
 /**
- * Bailanta backdrop in the spirit of the keyboard-battle videos: a packed,
- * smoky dance hall seen from the stage, sweeping lights, phone flashes, a
- * hand-painted trapo and a crowd that jumps on the beat and goes wild as the
+ * Bailanta backdrop in the spirit of the keyboard-battle videos: a small,
+ * smoky room seen from the stage, sweeping lights, phone flashes, a
+ * hand-painted trapo and a handful of fans who jump on the beat and go wild as the
  * combo climbs.
  */
 
@@ -20,7 +20,7 @@ interface Fan {
   offbeat: boolean
 }
 
-const ROWS = 5
+const ROWS = 2
 
 /** Deterministic PRNG so the crowd layout is the same every frame. */
 function rng(seed: number): () => number {
@@ -35,10 +35,10 @@ const FANS: Fan[] = (() => {
   const r = rng(2001)
   const fans: Fan[] = []
   for (let row = 0; row < ROWS; row++) {
-    const count = 26 - row * 3
-    for (let i = 0; i < count; i++) {
+    // A handful either side of the highway, not a packed hall
+    for (const x of row ? [0.08, 0.2, 0.8, 0.92] : [0.14, 0.27, 0.73, 0.86]) {
       fans.push({
-        x: (i + 0.5 + (r() - 0.5) * 0.7) / count,
+        x: x + (r() - 0.5) * 0.03,
         row,
         phase: r() * 0.35,
         pose: Math.floor(r() * 5),
