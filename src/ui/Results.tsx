@@ -1,9 +1,9 @@
 import type { DuelResult } from '../engine/duel'
 import { accuracy, letterGrade, type Stats } from '../engine/judge'
-import type { Song } from '../songs/types'
 
 interface Props {
-  song: Song
+  /** Line above the verdict, e.g. "La Resaka — Supermerk2". */
+  subtitle: string
   stats: Stats
   duel?: DuelResult
   newBest: boolean
@@ -11,13 +11,11 @@ interface Props {
   onMenu: () => void
 }
 
-export function Results({ song, stats, duel, newBest, onRetry, onMenu }: Props) {
+export function Results({ subtitle, stats, duel, newBest, onRetry, onMenu }: Props) {
   const acc = accuracy(stats)
   return (
     <div className="panel results">
-      <p className="subtitle">
-        {song.title} — {song.artist}
-      </p>
+      <p className="subtitle">{subtitle}</p>
       {duel && <DuelVerdict duel={duel} />}
       <div className="grade gold">{letterGrade(acc)}</div>
       <div className="score">{Math.round(stats.score).toLocaleString()}</div>

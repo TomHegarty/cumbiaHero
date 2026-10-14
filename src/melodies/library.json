@@ -1,0 +1,123 @@
+[
+  {
+    "id": "se-te-ve-la-tanga",
+    "title": "Se te ve la tanga",
+    "artist": "Damas Gratis",
+    "part": "Riff de intro",
+    "start": 6.5,
+    "end": 29.5,
+    "approx": false,
+    "leadStems": [
+      "other"
+    ]
+  },
+  {
+    "id": "no-te-creas-tan-importante",
+    "title": "No te creas tan importante",
+    "artist": "Damas Gratis",
+    "part": "Solo de teclado",
+    "start": 130.0,
+    "end": 148.0,
+    "approx": false,
+    "leadStems": [
+      "other"
+    ]
+  },
+  {
+    "id": "sos-boton",
+    "title": "Sos botón",
+    "artist": "Flor de Piedra",
+    "part": "Riff de intro",
+    "start": 0.8,
+    "end": 26.0,
+    "approx": false,
+    "leadStems": [
+      "other",
+      "piano"
+    ]
+  },
+  {
+    "id": "cumbia-de-los-trapos",
+    "title": "La cumbia de los trapos",
+    "artist": "Yerba Brava",
+    "part": "Riff de intro",
+    "start": 0,
+    "end": 16,
+    "approx": true,
+    "leadStems": [
+      "other"
+    ]
+  },
+  {
+    "id": "llegamos-los-pibes-chorros",
+    "title": "Llegamos los Pibes Chorros",
+    "artist": "Pibes Chorros",
+    "part": "Riff de intro",
+    "start": 17.5,
+    "end": 32.5,
+    "approx": false,
+    "leadStems": [
+      "other"
+    ]
+  },
+  {
+    "id": "para-la-gilada",
+    "title": "Para la gilada",
+    "artist": "Meta Guacha",
+    "part": "Riff de intro",
+    "start": 0,
+    "end": 16,
+    "approx": true,
+    "leadStems": [
+      "other"
+    ]
+  },
+  {
+    "id": "ritmo-sustancia",
+    "title": "Ritmo sustancia",
+    "artist": "Mala Fama",
+    "part": "Riff de intro",
+    "start": 0,
+    "end": 16,
+    "approx": true,
+    "leadStems": [
+      "other"
+    ]
+  },
+  {
+    "id": "bailan-rochas-y-chetas",
+    "title": "Bailan rochas y chetas",
+    "artist": "Nene Malo",
+    "part": "Riff de intro",
+    "start": 0,
+    "end": 16,
+    "approx": true,
+    "leadStems": [
+      "other"
+    ]
+  },
+  {
+    "id": "tirate-un-paso",
+    "title": "Tirate un paso",
+    "artist": "Los Wachiturros",
+    "part": "Riff de intro",
+    "start": 0,
+    "end": 16,
+    "approx": true,
+    "leadStems": [
+      "other"
+    ]
+  },
+  {
+    "id": "la-resaka",
+    "title": "La Resaka",
+    "artist": "Supermerk2",
+    "part": "Riff principal",
+    "start": 17.6,
+    "end": 29.7,
+    "approx": false,
+    "leadStems": [
+      "other"
+    ]
+  }
+]

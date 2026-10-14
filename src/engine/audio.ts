@@ -1,3 +1,5 @@
+import type { Song, SongTracks } from '../songs/types'
+
 let sharedCtx: AudioContext | null = null
 
 export function audioContext(): AudioContext {
@@ -22,13 +24,24 @@ export function loadAudio(url: string): Promise<AudioBuffer> {
   return p
 }
 
+/** Loads (or synthesizes) a song's audio, with its lead synth track when it has one. */
+export function loadSongTracks(song: Song): Promise<SongTracks> {
+  if (song.synth) return song.synth()
+  const base = import.meta.env.BASE_URL
+  return Promise.all([loadAudio(base + song.audio), song.lead ? loadAudio(base + song.lead) : undefined]).then(
+    ([main, lead]) => ({ main, lead }),
+  )
+}
+
 /**
  * Plays an AudioBuffer and exposes a song clock derived from the
  * AudioContext's hardware clock, which is far steadier than frame timing.
  */
 export class SongPlayer {
   private source: AudioBufferSourceNode | null = null
+  private leadSource: AudioBufferSourceNode | null = null
   private readonly gain: GainNode
+  private readonly leadGain: GainNode
   /** ctx.currentTime at which song-time 0 would have played. */
   private startCtxTime = 0
   private pausedAt = 0
@@ -37,13 +50,18 @@ export class SongPlayer {
   private onEnded: (() => void) | null = null
 
   readonly buffer: AudioBuffer
+  /** Optional lead synth track, played in sync with `buffer` on its own fader. */
+  readonly lead: AudioBuffer | null
   private readonly ctx: AudioContext
 
-  constructor(buffer: AudioBuffer, ctx: AudioContext = audioContext()) {
+  constructor(buffer: AudioBuffer, ctx: AudioContext = audioContext(), lead?: AudioBuffer) {
     this.buffer = buffer
+    this.lead = lead ?? null
     this.ctx = ctx
     this.gain = ctx.createGain()
     this.gain.connect(ctx.destination)
+    this.leadGain = ctx.createGain()
+    this.leadGain.connect(this.gain)
   }
 
   get duration(): number {
@@ -65,8 +83,23 @@ export class SongPlayer {
     this.gain.gain.value = v
   }
 
+  /** Fades the lead track towards `v` (0..1), e.g. dropping it out on a miss as in Guitar Hero. */
+  setLeadLevel(v: number): void {
+    this.leadGain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.015)
+  }
+
   setOnEnded(fn: (() => void) | null): void {
     this.onEnded = fn
+  }
+
+  /** Node that sound effects can join to share the song's volume. */
+  get output(): AudioNode {
+    return this.gain
+  }
+
+  /** AudioContext time at which song-time `t` plays, for scheduling effects in sync (while playing). */
+  contextTime(t: number): number {
+    return this.startCtxTime + t / this.rate
   }
 
   /** Current position in song seconds (may be negative during a lead-in). */
@@ -96,6 +129,15 @@ export class SongPlayer {
       }
     }
     this.source = src
+    if (this.lead) {
+      const lead = this.ctx.createBufferSource()
+      lead.buffer = this.lead
+      lead.playbackRate.value = this.rate
+      lead.connect(this.leadGain)
+      if (at >= 0) lead.start(now, Math.min(at, this.lead.duration))
+      else lead.start(now - at / this.rate, 0)
+      this.leadSource = lead
+    }
     this.playing = true
   }
 
@@ -115,9 +157,20 @@ export class SongPlayer {
     this.stopSource()
     this.playing = false
     this.gain.disconnect()
+    this.leadGain.disconnect()
   }
 
   private stopSource(): void {
+    if (this.leadSource) {
+      const l = this.leadSource
+      this.leadSource = null
+      try {
+        l.stop()
+      } catch {
+        // already stopped
+      }
+      l.disconnect()
+    }
     if (this.source) {
       const s = this.source
       this.source = null

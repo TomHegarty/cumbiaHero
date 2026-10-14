@@ -1,14 +1,18 @@
 import { useCallback, useState } from 'react'
 import type { Stats } from './engine/judge'
+import { rivalSetList } from './engine/battle'
 import type { DuelResult } from './engine/duel'
+import { MELODIES } from './melodies'
 import { loadSettings, saveBest, saveSettings, type Settings } from './settings'
 import type { Chart, Song } from './songs/types'
 import { Backdrop } from './ui/Backdrop'
+import { Battle } from './ui/Battle'
 import { Calibration } from './ui/Calibration'
 import { Editor } from './ui/Editor'
 import { Game } from './ui/Game'
 import { Menu } from './ui/Menu'
 import { Results } from './ui/Results'
+import { SetList } from './ui/SetList'
 
 type Screen =
   | { name: 'menu' }
@@ -16,6 +20,9 @@ type Screen =
   | { name: 'play'; song: Song; chartKey: string; chart: Chart; fromEditor: boolean }
   | { name: 'results'; song: Song; chartKey: string; chart: Chart; stats: Stats; duel?: DuelResult; newBest: boolean; fromEditor: boolean }
   | { name: 'editor'; song: Song; chartKey: string; chart: Chart }
+  | { name: 'setlist' }
+  | { name: 'battle'; yours: string[]; rivals: string[]; run: number }
+  | { name: 'battle-results'; yours: string[]; rivals: string[]; stats: Stats; duel: DuelResult }
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'menu' })
@@ -39,7 +46,16 @@ export default function App() {
   const toEditor = (song: Song, chartKey: string, chart: Chart) =>
     setScreen({ name: 'editor', song, chartKey, chart })
 
-  const backdrop = screen.name !== 'play' && screen.name !== 'editor'
+  const startBattle = (yours: string[], rivals: string[]) =>
+    setScreen((s) => ({ name: 'battle', yours, rivals, run: s.name === 'battle' ? s.run + 1 : 0 }))
+  const onBattleDone = useCallback(
+    (stats: Stats, duel: DuelResult) =>
+      setScreen((s) => (s.name === 'battle' ? { name: 'battle-results', yours: s.yours, rivals: s.rivals, stats, duel } : s)),
+    [],
+  )
+
+  // The battle draws its own backdrop between rounds
+  const backdrop = screen.name !== 'play' && screen.name !== 'editor' && screen.name !== 'battle'
   return (
     <>
       {backdrop && <Backdrop />}
@@ -61,6 +77,7 @@ export default function App() {
           }}
             onPlay={(song, key) => play(song, key, song.charts[key])}
             onCalibrate={() => setScreen({ name: 'calibrate' })}
+            onBattle={() => setScreen({ name: 'setlist' })}
             onEditor={(song, key) => toEditor(song, key, drafts[`${song.id}/${key}`] ?? song.charts[key])}
           />
         )
@@ -95,7 +112,7 @@ export default function App() {
       case 'results':
         return (
           <Results
-            song={screen.song}
+            subtitle={`${screen.song.title} — ${screen.song.artist}`}
             stats={screen.stats}
             duel={screen.duel}
             newBest={screen.newBest}
@@ -105,6 +122,45 @@ export default function App() {
                 ? toEditor(screen.song, screen.chartKey, screen.chart)
                 : setScreen({ name: 'menu' })
             }
+          />
+        )
+      case 'setlist':
+        return (
+          <SetList
+            volume={settings.volume}
+            onBack={() => setScreen({ name: 'menu' })}
+            onStart={(yours) =>
+              startBattle(
+                yours,
+                rivalSetList(
+                  MELODIES.map((m) => m.id),
+                  yours,
+                  Date.now(),
+                ),
+              )
+            }
+          />
+        )
+      case 'battle':
+        return (
+          <Battle
+            key={screen.run}
+            yours={screen.yours}
+            rivals={screen.rivals}
+            settings={settings}
+            onDone={onBattleDone}
+            onQuit={() => setScreen({ name: 'menu' })}
+          />
+        )
+      case 'battle-results':
+        return (
+          <Results
+            subtitle={`Batalla de melodías · ${screen.yours.length} contra ${screen.rivals.length}`}
+            stats={screen.stats}
+            duel={screen.duel}
+            newBest={false}
+            onRetry={() => startBattle(screen.yours, screen.rivals)}
+            onMenu={() => setScreen({ name: 'setlist' })}
           />
         )
       case 'editor': {

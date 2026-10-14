@@ -903,3 +903,214 @@ select {
   background: radial-gradient(circle at 35% 30%, #fff, #d6cbc0 40%, #6a5a50);
   cursor: pointer;
 }
+
+/* ---------- Set-list battles ---------- */
+
+button.battle-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 18px auto 0;
+  font-size: 1.3rem;
+  transform: rotate(-1.5deg);
+}
+.battle-cta small {
+  font-family: var(--marker);
+  font-size: 0.8rem;
+  text-transform: none;
+}
+
+.setlist {
+  width: min(860px, calc(100% - 32px));
+}
+.melodies {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 12px;
+  text-align: left;
+}
+.melodies li {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.melodies li.dim {
+  opacity: 0.55;
+}
+.melodies button.pick {
+  position: relative;
+  flex: 1;
+  border-radius: 14px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  text-align: left;
+  text-transform: none;
+  color: var(--ink);
+  background:
+    var(--noise-soft),
+    linear-gradient(100deg, var(--paper), #ffeec2 60%, #e8cf8c);
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.6);
+}
+.melodies li.picked button.pick {
+  background:
+    var(--noise-soft),
+    linear-gradient(100deg, var(--yellow), #ffd000 60%, var(--orange));
+  outline: 3px solid var(--red);
+}
+.melodies .num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-family: var(--display);
+  font-size: 1.1rem;
+  color: var(--yellow);
+  background: var(--ink);
+}
+.melodies li.picked .num {
+  background: var(--red);
+  color: #fff;
+}
+.melodies .info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-right: 44px;
+  white-space: normal;
+}
+.melodies .title {
+  font-family: var(--display);
+  font-size: 1rem;
+  line-height: 1.15;
+  color: var(--red);
+  text-shadow: 1px 1px 0 var(--ink);
+}
+.melodies .artist {
+  font-family: var(--marker);
+}
+.melodies .meta {
+  font-size: 0.72rem;
+  color: #5a2a14;
+}
+.melodies .demo {
+  position: absolute;
+  top: 6px;
+  right: 14px;
+  padding: 1px 6px;
+  font-family: var(--stencil);
+  font-size: 0.7rem;
+  color: #fff;
+  background: var(--ink);
+  transform: rotate(6deg);
+}
+.melodies button.listen {
+  flex: none;
+  width: 46px;
+  padding: 0;
+  border-radius: 14px;
+}
+@media (max-width: 520px) {
+  .setlist {
+    padding: 26px 14px 20px;
+  }
+  .melodies button.pick {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .melodies .num {
+    width: 28px;
+    height: 28px;
+    font-size: 0.95rem;
+  }
+}
+
+.tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.tray .slot {
+  padding: 4px 10px;
+  border: 2px dashed var(--muted);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.tray .slot.filled {
+  border: 2px solid var(--ink);
+  background: var(--yellow);
+  color: var(--ink);
+}
+.row.center {
+  justify-content: center;
+}
+
+.round-intro h2 {
+  font-size: 2.6rem;
+  transform: rotate(-2deg);
+}
+.round-intro .now-playing {
+  font-size: 1.1rem;
+}
+.round-intro .now-playing b {
+  font-family: var(--display);
+  font-weight: 400;
+  color: var(--yellow);
+}
+.round-intro .now-playing span {
+  font-family: var(--marker);
+  color: var(--muted);
+}
+.sets {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 14px;
+  margin: 16px 0;
+  text-align: left;
+}
+.sets .side {
+  flex: 1;
+  max-width: 260px;
+}
+.sets .who {
+  font-family: var(--display);
+  color: var(--yellow);
+}
+.sets .side.rival .who {
+  color: var(--cyan);
+}
+.sets .who span {
+  float: right;
+  color: #fff;
+}
+.sets ol {
+  margin: 6px 0 0;
+  padding-left: 20px;
+  font-size: 0.9rem;
+}
+.sets li.now {
+  font-weight: bold;
+  color: var(--yellow);
+}
+.sets li.done {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+.sets .vs {
+  align-self: center;
+  font-family: var(--display);
+  font-size: 1.8rem;
+  color: var(--red);
+  text-shadow: 2px 2px 0 #000;
+}

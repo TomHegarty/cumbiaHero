@@ -29,3 +29,6 @@ models/
 bp/
 .venv*/
 __pycache__/
+
+# battle melody pipeline: source recordings stay local
+songs-in/

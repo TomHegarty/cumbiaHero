@@ -50,6 +50,103 @@ def keyboard_signal(stems: Path, sections: list[dict], n: int) -> np.ndarray:
     return out
 
 
+def chart_synth(
+    stems: Path,
+    sections: list[dict],
+    grid: Grid,
+    *,
+    floor_db: float = -30,
+    attack: float = 1.5,
+    rise_db: float = 2.0,
+    same: float = 0.9,
+    min_gap: int = 2,
+    hold_beats: float = 0.75,
+    window: float = 4.0,
+) -> tuple[list[dict], list[list]]:
+    """Chart the synth inside `sections`. Returns the chart notes and the raw kept notes."""
+    n = len(load(stems / "drums.wav"))
+    y = keyboard_signal(stems, sections, n)
+
+    env = librosa.onset.onset_strength(y=y, sr=SR, hop_length=HOP)
+    env_t = librosa.times_like(env, sr=SR, hop_length=HOP)
+    S, stimes = salience(y)
+    rms = librosa.feature.rms(y=y, hop_length=HOP)[0]
+    floor = 20 * np.log10(np.max(rms) + 1e-9) + floor_db
+
+    # Walk the 16th grid. The synth is flat-pitched and often legato, so a new
+    # note starts on an attack, on a change of the strongest pitch, or when
+    # sound comes back after silence; otherwise the previous note rings on.
+    notes_raw: list[list] = []  # [slot, pitch, length in 16ths]
+    for sec in sections:
+        s0, _ = grid.snap(sec["start"])
+        s1, _ = grid.snap(sec["end"])
+        # A slot just before the section still counts (the song's first note).
+        if grid.slot_time(s0) < sec["start"] - 0.1:
+            s0 += 1
+        a, b = np.searchsorted(env_t, [sec["start"], sec["end"]])
+        onset_floor = float(np.median(env[a:b])) * attack
+        prev = None
+        prev_vec = None
+        prev_level = -120.0
+        for slot in range(s0, s1):
+            t, t2 = grid.slot_time(slot), grid.slot_time(slot + 1)
+            fa, fb = np.searchsorted(env_t, [t, max(t2, t + 0.02)])
+            level = 20 * np.log10(rms[fa:fb].mean() + 1e-9)
+            if level < floor:
+                prev = None
+                prev_level = level
+                continue
+            sa, sb = np.searchsorted(stimes, [t + 0.01, max(t2, t + 0.03)])
+            vec = S[55 - FMIN_MIDI : 100 - FMIN_MIDI, sa:sb].mean(axis=1)
+            vec = vec / (np.linalg.norm(vec) + 1e-9)
+            p = int(np.argmax(vec)) + 55
+            oa, ob = np.searchsorted(env_t, [t - 0.04, t + 0.04])
+            attacked = env[oa:ob].max() > onset_floor and level > prev_level + rise_db
+            changed = prev_vec is not None and float(vec @ prev_vec) < same
+            if prev is None or attacked or changed:
+                prev = [slot, p, 1]
+                notes_raw.append(prev)
+            else:
+                prev[2] += 1
+            prev_vec, prev_level = vec, level
+
+    # Thin to the difficulty's density. When two notes fall closer than the
+    # minimum gap, a short pickup gives way to the longer note after it;
+    # otherwise the later note is dropped, and its length folds into the kept
+    # note when they share a pitch so sustains survive.
+    kept: list[list] = []
+    for n in notes_raw:
+        if kept and n[0] - kept[-1][0] < min_gap:
+            last = kept[-1]
+            if n[2] > last[2] and (len(kept) < 2 or n[0] - kept[-2][0] >= min_gap):
+                kept[-1] = n
+            elif n[1] == last[1]:
+                last[2] = max(last[2], n[0] + n[2] - last[0])
+            continue
+        kept.append(n)
+
+    lanes = contour_lanes([n[1] for n in kept], [n[0] / 4 for n in kept], window)
+
+    # A held note may ring on under notes for the other hand (lanes 0-3 are
+    # the left hand, 4-7 the right), so it only has to end before the next
+    # note for the same hand.
+    notes = []
+    for i, (n, lane) in enumerate(zip(kept, lanes)):
+        slot, pitch, length = n
+        note: dict = {"b": slot / 4, "l": lane}
+        same_hand = [m[0] for m, ml in zip(kept[i + 1 :], lanes[i + 1 :]) if ml // 4 == lane // 4]
+        next_slot = same_hand[0] if same_hand else slot + 64
+        # Leave half a beat to let go before the next note.
+        room = (next_slot - slot) / 4 - 0.5
+        ring = max(length / 4, sustain(S, stimes, grid.slot_time(slot), pitch, limit=8 * grid.spb) / grid.spb)
+        # Holds are at least a beat long so they read as holds, not taps.
+        if ring >= hold_beats and room >= 1:
+            note["d"] = float(min(np.floor(room * 2) / 2, max(1.0, round(ring * 2) / 2)))
+        notes.append(note)
+
+    return notes, kept
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("stems", type=Path, help="folder with the demucs htdemucs_6s stems")
@@ -70,85 +167,18 @@ def main() -> None:
 
     grid = Grid(args.bpm, args.offset, args.groove)
     sections = json.loads(args.sections.read_text())
-    n = len(load(args.stems / "drums.wav"))
-    y = keyboard_signal(args.stems, sections, n)
-
-    env = librosa.onset.onset_strength(y=y, sr=SR, hop_length=HOP)
-    env_t = librosa.times_like(env, sr=SR, hop_length=HOP)
-    S, stimes = salience(y)
-    rms = librosa.feature.rms(y=y, hop_length=HOP)[0]
-    floor_db = 20 * np.log10(np.max(rms) + 1e-9) + args.floor_db
-
-    # Walk the 16th grid. The synth is flat-pitched and often legato, so a new
-    # note starts on an attack, on a change of the strongest pitch, or when
-    # sound comes back after silence; otherwise the previous note rings on.
-    notes_raw: list[list] = []  # [slot, pitch, length in 16ths]
-    for sec in sections:
-        s0, _ = grid.snap(sec["start"])
-        s1, _ = grid.snap(sec["end"])
-        # A slot just before the section still counts (the song's first note).
-        if grid.slot_time(s0) < sec["start"] - 0.1:
-            s0 += 1
-        a, b = np.searchsorted(env_t, [sec["start"], sec["end"]])
-        onset_floor = float(np.median(env[a:b])) * args.attack
-        prev = None
-        prev_vec = None
-        prev_level = -120.0
-        for slot in range(s0, s1):
-            t, t2 = grid.slot_time(slot), grid.slot_time(slot + 1)
-            fa, fb = np.searchsorted(env_t, [t, max(t2, t + 0.02)])
-            level = 20 * np.log10(rms[fa:fb].mean() + 1e-9)
-            if level < floor_db:
-                prev = None
-                prev_level = level
-                continue
-            sa, sb = np.searchsorted(stimes, [t + 0.01, max(t2, t + 0.03)])
-            vec = S[55 - FMIN_MIDI : 100 - FMIN_MIDI, sa:sb].mean(axis=1)
-            vec = vec / (np.linalg.norm(vec) + 1e-9)
-            p = int(np.argmax(vec)) + 55
-            oa, ob = np.searchsorted(env_t, [t - 0.04, t + 0.04])
-            attack = env[oa:ob].max() > onset_floor and level > prev_level + args.rise_db
-            changed = prev_vec is not None and float(vec @ prev_vec) < args.same
-            if prev is None or attack or changed:
-                prev = [slot, p, 1]
-                notes_raw.append(prev)
-            else:
-                prev[2] += 1
-            prev_vec, prev_level = vec, level
-
-    # Thin to the difficulty's density. When two notes fall closer than the
-    # minimum gap, a short pickup gives way to the longer note after it;
-    # otherwise the later note is dropped, and its length folds into the kept
-    # note when they share a pitch so sustains survive.
-    kept: list[list] = []
-    for n in notes_raw:
-        if kept and n[0] - kept[-1][0] < args.min_gap:
-            last = kept[-1]
-            if n[2] > last[2] and (len(kept) < 2 or n[0] - kept[-2][0] >= args.min_gap):
-                kept[-1] = n
-            elif n[1] == last[1]:
-                last[2] = max(last[2], n[0] + n[2] - last[0])
-            continue
-        kept.append(n)
-
-    lanes = contour_lanes([n[1] for n in kept], [n[0] / 4 for n in kept], args.window)
-
-    # A held note may ring on under notes for the other hand (lanes 0-3 are
-    # the left hand, 4-7 the right), so it only has to end before the next
-    # note for the same hand.
-    notes = []
-    for i, (n, lane) in enumerate(zip(kept, lanes)):
-        slot, pitch, length = n
-        note: dict = {"b": slot / 4, "l": lane}
-        same_hand = [m[0] for m, ml in zip(kept[i + 1 :], lanes[i + 1 :]) if ml // 4 == lane // 4]
-        next_slot = same_hand[0] if same_hand else slot + 64
-        # Leave half a beat to let go before the next note.
-        room = (next_slot - slot) / 4 - 0.5
-        ring = max(length / 4, sustain(S, stimes, grid.slot_time(slot), pitch, limit=8 * grid.spb) / grid.spb)
-        # Holds are at least a beat long so they read as holds, not taps.
-        if ring >= args.hold_beats and room >= 1:
-            note["d"] = float(min(np.floor(room * 2) / 2, max(1.0, round(ring * 2) / 2)))
-        notes.append(note)
+    notes, kept = chart_synth(
+        args.stems,
+        sections,
+        grid,
+        floor_db=args.floor_db,
+        attack=args.attack,
+        rise_db=args.rise_db,
+        same=args.same,
+        min_gap=args.min_gap,
+        hold_beats=args.hold_beats,
+        window=args.window,
+    )
 
     chart = {"name": args.name, "source": "generated", "notes": notes}
     args.out.write_text(json.dumps(chart, separators=(",", ":")) + "\n")

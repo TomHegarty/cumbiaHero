@@ -18,6 +18,18 @@ Hit notes as they cross the line: **Perfecto** (±50 ms), **Bien** (±100 ms).
 Every 10-note combo raises the multiplier up to ×4. Run **Calibrar** once to
 compensate for your audio/keyboard latency.
 
+## Melody battles
+
+**¡Batalla de melodías!** on the menu: pick 3 melody highlights from the
+library of 10 cumbia villera songs, then take turns with the AI keyboardist
+El Rayo, who brings 3 of his own. Each turn is one whole melody played over
+that song's backing track; the lead synth drops out when you miss. Every
+melody you nail takes up to a third of El Rayo's bar.
+
+The library is [`src/melodies/library.json`](src/melodies/library.json).
+Songs not yet processed play a synthesized demo riff; to use the real
+recordings, see [`tools/melodies`](tools/melodies/README.md).
+
 ## Songs
 
 | Song | Chart |
@@ -58,7 +70,9 @@ src/engine/   timing (tempo map + groove), scoring/judging, audio clock, input
 src/render/   canvas highway
 src/ui/       React screens: menu, game, results, calibration, editor
 src/songs/    song registry + per-song charts
+src/melodies/ battle melody library, demo riffs, processed clips
 tools/chartgen/  Python auto-charter
+tools/melodies/  recording → backing + lead synth clip + chart
 ```
 
 The game clock is the Web Audio hardware clock, not frame time, so notes stay

@@ -26,8 +26,12 @@ export interface Song {
   id: string
   title: string
   artist: string
-  /** Audio URL relative to the site base (public/ folder). */
+  /** Audio URL relative to the site base (public/ folder). With `lead`, this is the backing track. */
   audio: string
+  /** The lead synth on its own track, muted while the player misses (melody clips only). */
+  lead?: string
+  /** Builds the audio in the browser instead of loading `audio`; used by the demo melodies. */
+  synth?: () => Promise<SongTracks>
   /** Seconds into the audio file where beat 0 falls. */
   offset: number
   tempo: TempoPoint[]
@@ -39,4 +43,10 @@ export interface Song {
   /** Beats per bar, used for drawing bar lines. */
   beatsPerBar: number
   charts: Record<string, Chart>
+}
+
+/** Decoded audio for a song: the main mix (or backing), plus the lead synth when it is split out. */
+export interface SongTracks {
+  main: AudioBuffer
+  lead?: AudioBuffer
 }
