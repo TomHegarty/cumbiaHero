@@ -6,13 +6,14 @@ import type { Song } from '../songs/types'
 interface Props {
   onPlay: (song: Song, chartKey: string) => void
   onCalibrate: () => void
+  onBattle: () => void
   onEditor: (song: Song, chartKey: string) => void
   offsetMs: number
   volume: number
   onVolume: (volume: number) => void
 }
 
-export function Menu({ onPlay, onCalibrate, onEditor, offsetMs, volume, onVolume }: Props) {
+export function Menu({ onPlay, onCalibrate, onBattle, onEditor, offsetMs, volume, onVolume }: Props) {
   return (
     <div className="panel menu">
       <h1 className="logo">
@@ -32,6 +33,11 @@ export function Menu({ onPlay, onCalibrate, onEditor, offsetMs, volume, onVolume
         Hit notes as they cross the line · hold long notes · <kbd>Space</kbd> unleashes Sabor ·{' '}
         <kbd>Esc</kbd> pauses
       </p>
+
+      <button className="hot battle-cta" onClick={onBattle}>
+        ¡Batalla de melodías!
+        <small>Armá tu lista de 3 y enfrentá a El Rayo</small>
+      </button>
 
       <ul className="songs">
         {SONGS.map((song, i) =>
