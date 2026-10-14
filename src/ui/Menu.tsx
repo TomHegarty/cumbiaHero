@@ -36,7 +36,7 @@ export function Menu({ onPlay, onCalibrate, onBattle, onEditor, offsetMs, volume
 
       <button className="hot battle-cta" onClick={onBattle}>
         ¡Batalla de melodías!
-        <small>Armá tu lista de 3 y enfrentá a El Rayo</small>
+        <small>Armá tu lista de 3 y enfrentá a El Rayo o invitá a alguien</small>
       </button>
 
       <ul className="songs">

@@ -6,15 +6,16 @@ import { MELODIES, type Melody } from '../melodies'
 
 interface Props {
   volume: number
-  onStart: (picks: string[]) => void
-  onBack: () => void
+  picks: string[]
+  onPicks: (picks: string[]) => void
+  /** No changes while you're marked ready. */
+  locked?: boolean
 }
 
 const PREVIEW_SECONDS = 8
 
 /** Pick the melodies you'll bring to the battle, in the order you'll play them. */
-export function SetList({ volume, onStart, onBack }: Props) {
-  const [picks, setPicks] = useState<string[]>([])
+export function MelodyPicker({ volume, picks, onPicks, locked = false }: Props) {
   const [previewing, setPreviewing] = useState<string | null>(null)
   const preview = useRef<{ player: SongPlayer; timer: number } | null>(null)
   // Bumped on every start/stop so a preview that finishes loading late doesn't play
@@ -31,8 +32,10 @@ export function SetList({ volume, onStart, onBack }: Props) {
   }
   useEffect(() => stopPreview, [])
 
-  const toggle = (id: string) =>
-    setPicks((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length < SET_SIZE ? [...p, id] : p))
+  const toggle = (id: string) => {
+    if (locked) return
+    onPicks(picks.includes(id) ? picks.filter((x) => x !== id) : picks.length < SET_SIZE ? [...picks, id] : picks)
+  }
 
   const listen = (m: Melody) => {
     const again = previewing === m.id
@@ -54,18 +57,13 @@ export function SetList({ volume, onStart, onBack }: Props) {
 
   const full = picks.length === SET_SIZE
   return (
-    <div className="panel setlist">
-      <h2 className="chrome">Armá tu lista</h2>
-      <p className="hint">
-        Elegí {SET_SIZE} melodías. Las tocás en este orden, turnándote con El Rayo, que trae las suyas.
-      </p>
-
-      <ul className="melodies">
+    <>
+      <ul className={locked ? 'melodies locked' : 'melodies'}>
         {MELODIES.map((m) => {
           const n = picks.indexOf(m.id)
           return (
-            <li key={m.id} className={n >= 0 ? 'picked' : full ? 'dim' : undefined}>
-              <button className="pick" onClick={() => toggle(m.id)} aria-pressed={n >= 0}>
+            <li key={m.id} className={n >= 0 ? 'picked' : full || locked ? 'dim' : undefined}>
+              <button className="pick" onClick={() => toggle(m.id)} aria-pressed={n >= 0} disabled={locked}>
                 <span className="num">{n >= 0 ? n + 1 : '+'}</span>
                 <span className="info">
                   <span className="title">{m.title}</span>
@@ -102,26 +100,6 @@ export function SetList({ volume, onStart, onBack }: Props) {
           )
         })}
       </div>
-      <div className="row center">
-        <button
-          onClick={() => {
-            stopPreview()
-            onBack()
-          }}
-        >
-          Volver
-        </button>
-        <button
-          className="hot"
-          disabled={!full}
-          onClick={() => {
-            stopPreview()
-            onStart(picks)
-          }}
-        >
-          ¡A batallar!
-        </button>
-      </div>
-    </div>
+    </>
   )
 }

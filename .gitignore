@@ -32,3 +32,6 @@ __pycache__/
 
 # battle melody pipeline: source recordings stay local
 songs-in/
+
+# Firebase emulator logs
+*-debug.log

@@ -1114,3 +1114,99 @@ button.battle-cta {
   color: var(--red);
   text-shadow: 2px 2px 0 #000;
 }
+
+/* ---------- Pre-game: name, set list and opponent ---------- */
+
+.pregame h3 {
+  margin: 18px 0 4px;
+  font-family: var(--display);
+  font-weight: 400;
+  color: var(--yellow);
+  text-shadow: 2px 2px 0 var(--ink);
+}
+.melodies.locked {
+  pointer-events: none;
+}
+.melodies.locked button.listen {
+  pointer-events: auto;
+}
+.name-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-family: var(--marker);
+}
+.name-field input {
+  width: min(240px, 60vw);
+  padding: 6px 10px;
+  font-size: 1.05rem;
+}
+.opponents {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+  margin: 10px 0 8px;
+}
+.opponents > .row {
+  grid-column: 1 / -1;
+}
+.opponent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  text-align: left;
+  text-transform: none;
+  color: var(--ink);
+  background:
+    var(--noise-soft),
+    linear-gradient(100deg, var(--paper), #ffeec2 60%, #e8cf8c);
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.6);
+}
+.opponent b {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.05rem;
+  color: var(--red);
+}
+.opponent span {
+  font-size: 0.85rem;
+}
+.opponent.selected {
+  outline: 3px solid var(--red);
+}
+.opponent.rival.ready {
+  background:
+    var(--noise-soft),
+    linear-gradient(100deg, var(--yellow), #ffd000 60%, var(--orange));
+}
+.opponent .status {
+  font-family: var(--marker);
+  font-size: 1rem;
+}
+button.opponent.invite {
+  font: inherit;
+  cursor: pointer;
+  border: 3px dashed var(--red);
+}
+.opponent.invite-link code {
+  display: block;
+  padding: 6px 8px;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+  color: var(--yellow);
+  background: var(--ink);
+  user-select: all;
+}
+.opponent.error b {
+  color: var(--blood);
+}
+.round-intro .countdown {
+  margin: 10px 0;
+  font-family: var(--display);
+  font-size: 2.4rem;
+  color: var(--yellow);
+  text-shadow: 3px 3px 0 var(--ink);
+}

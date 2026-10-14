@@ -25,6 +25,8 @@ export type Grade = 'perfect' | 'good' | 'miss'
 
 export interface JudgeEvent {
   grade: Grade
+  /** Index of the note in `notes`. */
+  index: number
   lane: number
   time: number
 }
@@ -124,7 +126,7 @@ export class Judge {
     } else {
       this.states[best] = 'hit'
     }
-    this.emit({ grade, lane, time: t })
+    this.emit({ grade, index: best, lane, time: t })
     this.advanceCursor()
     return grade
   }
@@ -158,7 +160,7 @@ export class Judge {
         this.states[i] = 'missed'
         this.stats.miss++
         this.stats.combo = 0
-        this.emit({ grade: 'miss', lane: n.lane, time: t })
+        this.emit({ grade: 'miss', index: i, lane: n.lane, time: t })
       }
     }
     this.advanceCursor()

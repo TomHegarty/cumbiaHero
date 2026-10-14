@@ -9,9 +9,11 @@ interface Props {
   newBest: boolean
   onRetry: () => void
   onMenu: () => void
+  /** Label for the retry button. */
+  retryLabel?: string
 }
 
-export function Results({ subtitle, stats, duel, newBest, onRetry, onMenu }: Props) {
+export function Results({ subtitle, stats, duel, newBest, onRetry, onMenu, retryLabel = 'Otra vez' }: Props) {
   const acc = accuracy(stats)
   return (
     <div className="panel results">
@@ -46,7 +48,7 @@ export function Results({ subtitle, stats, duel, newBest, onRetry, onMenu }: Pro
       </table>
       <div className="stack">
         <button className="hot" autoFocus onClick={onRetry}>
-          Otra vez
+          {retryLabel}
         </button>
         <button onClick={onMenu}>Menú</button>
       </div>
@@ -56,13 +58,21 @@ export function Results({ subtitle, stats, duel, newBest, onRetry, onMenu }: Pro
 
 function DuelVerdict({ duel }: { duel: DuelResult }) {
   const pct = (v: number) => `${Math.round(Math.max(0, v) * 100)}%`
-  const won = duel.you > duel.rival
+  const won = duel.forfeit || duel.you > duel.rival
   const tie = Math.abs(duel.you - duel.rival) < 0.005
   return (
     <div className={`duel-verdict ${tie ? 'tie' : won ? 'won' : 'lost'}`}>
-      <strong>{tie ? '¡EMPATE!' : won ? `¡LE GANASTE A ${duel.rivalName}!` : `${duel.rivalName} TE GANÓ`}</strong>
+      <strong>
+        {duel.forfeit
+          ? `¡${duel.rivalName} ABANDONÓ!`
+          : tie
+            ? '¡EMPATE!'
+            : won
+              ? `¡LE GANASTE A ${duel.rivalName}!`
+              : `${duel.rivalName} TE GANÓ`}
+      </strong>
       <span>
-        VOS {pct(duel.you)} · {duel.rivalName} {pct(duel.rival)}
+        {duel.youName ?? 'VOS'} {pct(duel.you)} · {duel.rivalName} {pct(duel.rival)}
       </span>
     </div>
   )

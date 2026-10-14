@@ -30,6 +30,29 @@ The library is [`src/melodies/library.json`](src/melodies/library.json).
 Songs not yet processed play a synthesized demo riff; to use the real
 recordings, see [`tools/melodies`](tools/melodies/README.md).
 
+### Online battles
+
+On the pre-game screen, **Invitar a alguien** swaps El Rayo for a friend: it
+opens a lobby and gives you a link (`…/cumbiaHero/?lobby=K7Q2XM`). Whoever
+opens it lands on the same screen, enters a name and picks a set list; once
+both press **¡Listo!** the battle starts on both screens on a shared clock.
+The inviter plays first. Each browser judges its own notes and streams them to
+the other, so you see your rival's hits on the highway as they land.
+
+It runs on Firebase (Anonymous Auth + Realtime Database, free plan); the
+project config is in [`src/net/config.ts`](src/net/config.ts). What players can
+write is locked down by [`database.rules.json`](database.rules.json), which
+has to be published in the Firebase console (Realtime Database → Rules) or
+with `npx firebase-tools deploy --only database` whenever it changes.
+
+To test locally against the emulators instead of the real project:
+
+```sh
+npx firebase-tools emulators:start --only auth,database
+VITE_FIREBASE_EMULATOR=127.0.0.1 npm run dev          # in another terminal
+node tools/firebase/test-rules.mjs                    # checks the rules
+```
+
 ## Songs
 
 | Song | Chart |
@@ -71,8 +94,10 @@ src/render/   canvas highway
 src/ui/       React screens: menu, game, results, calibration, editor
 src/songs/    song registry + per-song charts
 src/melodies/ battle melody library, demo riffs, processed clips
+src/net/      online battles: Firebase lobbies, invite links, hit streaming
 tools/chartgen/  Python auto-charter
 tools/melodies/  recording → backing + lead synth clip + chart
+tools/firebase/  security-rule checks against the emulator
 ```
 
 The game clock is the Web Audio hardware clock, not frame time, so notes stay

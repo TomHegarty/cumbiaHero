@@ -1,3 +1,4 @@
+import { damageFor } from './duel'
 import type { Stats } from './judge'
 
 /**
@@ -21,14 +22,21 @@ export interface BattleRound {
   melodyId: string
 }
 
-/** Your picks and the rival's, alternating, you first. */
-export function battleRounds(yours: string[], rivals: string[]): BattleRound[] {
+/** Your picks and the rival's, alternating, you first unless `youFirst` is false. */
+export function battleRounds(yours: string[], rivals: string[], youFirst = true): BattleRound[] {
   const rounds: BattleRound[] = []
+  const [first, second]: [Side, Side] = youFirst ? ['you', 'rival'] : ['rival', 'you']
+  const sets = { you: yours, rival: rivals }
   for (let i = 0; i < Math.max(yours.length, rivals.length); i++) {
-    if (yours[i]) rounds.push({ owner: 'you', melodyId: yours[i] })
-    if (rivals[i]) rounds.push({ owner: 'rival', melodyId: rivals[i] })
+    if (sets[first][i]) rounds.push({ owner: first, melodyId: sets[first][i] })
+    if (sets[second][i]) rounds.push({ owner: second, melodyId: sets[second][i] })
   }
   return rounds
+}
+
+/** Damage a round's stats add up to, the same sum the game keeps note by note. */
+export function dealtBy(s: Pick<Stats, 'perfect' | 'good'>): number {
+  return s.perfect * damageFor('perfect') + s.good * damageFor('good')
 }
 
 /**

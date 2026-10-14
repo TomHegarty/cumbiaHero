@@ -6,13 +6,15 @@ import { MELODIES } from './melodies'
 import { loadSettings, saveBest, saveSettings, type Settings } from './settings'
 import type { Chart, Song } from './songs/types'
 import { Backdrop } from './ui/Backdrop'
-import { Battle } from './ui/Battle'
+import { Battle, type OnlineLink } from './ui/Battle'
 import { Calibration } from './ui/Calibration'
 import { Editor } from './ui/Editor'
 import { Game } from './ui/Game'
 import { Menu } from './ui/Menu'
 import { Results } from './ui/Results'
-import { SetList } from './ui/SetList'
+import { PreGame, type OnlineStart } from './ui/PreGame'
+import { lobbyCodeFromUrl, lobbyUrl } from './net/config'
+import type { Lobby } from './net/online'
 
 type Screen =
   | { name: 'menu' }
@@ -20,12 +22,19 @@ type Screen =
   | { name: 'play'; song: Song; chartKey: string; chart: Chart; fromEditor: boolean }
   | { name: 'results'; song: Song; chartKey: string; chart: Chart; stats: Stats; duel?: DuelResult; newBest: boolean; fromEditor: boolean }
   | { name: 'editor'; song: Song; chartKey: string; chart: Chart }
-  | { name: 'setlist' }
-  | { name: 'battle'; yours: string[]; rivals: string[]; run: number }
-  | { name: 'battle-results'; yours: string[]; rivals: string[]; stats: Stats; duel: DuelResult }
+  | { name: 'pregame'; joinCode?: string; lobby?: Lobby }
+  | { name: 'battle'; yours: string[]; rivals: string[]; names: Names; online?: OnlineLink; run: number }
+  | { name: 'battle-results'; yours: string[]; rivals: string[]; names: Names; online?: OnlineLink; stats: Stats; duel: DuelResult }
+
+type Names = { you: string; rival: string }
+const AI_RIVAL = 'EL RAYO'
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>({ name: 'menu' })
+  // An invite link opens straight into that lobby's pre-game screen
+  const [screen, setScreen] = useState<Screen>(() => {
+    const joinCode = lobbyCodeFromUrl()
+    return joinCode ? { name: 'pregame', joinCode } : { name: 'menu' }
+  })
   const [settings, setSettings] = useState<Settings>(loadSettings)
   // Unsaved editor work survives test plays and trips to the menu.
   const [drafts, setDrafts] = useState<Record<string, Chart>>({})
@@ -46,13 +55,23 @@ export default function App() {
   const toEditor = (song: Song, chartKey: string, chart: Chart) =>
     setScreen({ name: 'editor', song, chartKey, chart })
 
-  const startBattle = (yours: string[], rivals: string[]) =>
-    setScreen((s) => ({ name: 'battle', yours, rivals, run: s.name === 'battle' ? s.run + 1 : 0 }))
-  const onBattleDone = useCallback(
-    (stats: Stats, duel: DuelResult) =>
-      setScreen((s) => (s.name === 'battle' ? { name: 'battle-results', yours: s.yours, rivals: s.rivals, stats, duel } : s)),
+  const startBattle = (yours: string[], rivals: string[], names: Names, online?: OnlineLink) =>
+    setScreen((s) => ({ name: 'battle', yours, rivals, names, online, run: s.name === 'battle-results' ? Date.now() : 0 }))
+  const onStartOnline = useCallback(
+    ({ lobby, yours, rivals, names, rivalUid, youFirst }: OnlineStart) =>
+      setScreen({ name: 'battle', yours, rivals, names, online: { lobby, rivalUid, youFirst }, run: Date.now() }),
     [],
   )
+  const onBattleDone = useCallback(
+    (stats: Stats, duel: DuelResult) =>
+      setScreen((s) => (s.name === 'battle' ? { ...s, name: 'battle-results', stats, duel } : s)),
+    [],
+  )
+  /** Leaves any online lobby and drops its code from the address bar. */
+  const leaveOnline = (online?: OnlineLink) => {
+    online?.lobby.leave()
+    window.history.replaceState(null, '', lobbyUrl(null))
+  }
 
   // The battle draws its own backdrop between rounds
   const backdrop = screen.name !== 'play' && screen.name !== 'editor' && screen.name !== 'battle'
@@ -77,7 +96,7 @@ export default function App() {
           }}
             onPlay={(song, key) => play(song, key, song.charts[key])}
             onCalibrate={() => setScreen({ name: 'calibrate' })}
-            onBattle={() => setScreen({ name: 'setlist' })}
+            onBattle={() => setScreen({ name: 'pregame' })}
             onEditor={(song, key) => toEditor(song, key, drafts[`${song.id}/${key}`] ?? song.charts[key])}
           />
         )
@@ -124,12 +143,15 @@ export default function App() {
             }
           />
         )
-      case 'setlist':
+      case 'pregame':
         return (
-          <SetList
+          <PreGame
+            key={screen.lobby?.code ?? screen.joinCode ?? 'new'}
             volume={settings.volume}
+            joinCode={screen.joinCode}
+            lobby={screen.lobby}
             onBack={() => setScreen({ name: 'menu' })}
-            onStart={(yours) =>
+            onStartAi={(yours, you) =>
               startBattle(
                 yours,
                 rivalSetList(
@@ -137,8 +159,10 @@ export default function App() {
                   yours,
                   Date.now(),
                 ),
+                { you, rival: AI_RIVAL },
               )
             }
+            onStartOnline={onStartOnline}
           />
         )
       case 'battle':
@@ -147,22 +171,40 @@ export default function App() {
             key={screen.run}
             yours={screen.yours}
             rivals={screen.rivals}
+            names={screen.names}
+            online={screen.online}
             settings={settings}
             onDone={onBattleDone}
-            onQuit={() => setScreen({ name: 'menu' })}
+            onQuit={() => {
+              leaveOnline(screen.online)
+              setScreen({ name: 'menu' })
+            }}
           />
         )
-      case 'battle-results':
+      case 'battle-results': {
+        const { online } = screen
+        const leftEarly = !!screen.duel.forfeit
         return (
           <Results
-            subtitle={`Batalla de melodías · ${screen.yours.length} contra ${screen.rivals.length}`}
+            subtitle={`Batalla de melodías · ${screen.names.you} contra ${screen.names.rival}`}
             stats={screen.stats}
             duel={screen.duel}
             newBest={false}
-            onRetry={() => startBattle(screen.yours, screen.rivals)}
-            onMenu={() => setScreen({ name: 'setlist' })}
+            retryLabel={online ? (leftEarly ? 'Nueva batalla' : 'Revancha') : 'Otra vez'}
+            onRetry={() => {
+              if (!online) startBattle(screen.yours, screen.rivals, screen.names)
+              else if (leftEarly) {
+                leaveOnline(online)
+                setScreen({ name: 'pregame' })
+              } else setScreen({ name: 'pregame', lobby: online.lobby })
+            }}
+            onMenu={() => {
+              leaveOnline(online)
+              setScreen({ name: 'menu' })
+            }}
           />
         )
+      }
       case 'editor': {
         const key = `${screen.song.id}/${screen.chartKey}`
         return (

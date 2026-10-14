@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { afterRound, battleOver, battleRounds, rivalSetList, SET_SIZE, sumStats } from './battle'
+import { afterRound, battleOver, battleRounds, dealtBy, rivalSetList, SET_SIZE, sumStats } from './battle'
 import type { Stats } from './judge'
 
 describe('battleRounds', () => {
@@ -12,6 +12,21 @@ describe('battleRounds', () => {
       'you:c',
       'rival:z',
     ])
+  })
+
+  it('lets the rival open, for the guest of an online battle', () => {
+    expect(battleRounds(['a', 'b'], ['x', 'y'], false).map((r) => `${r.owner}:${r.melodyId}`)).toEqual([
+      'rival:x',
+      'you:a',
+      'rival:y',
+      'you:b',
+    ])
+  })
+})
+
+describe('dealtBy', () => {
+  it('counts a perfect as a full hit and a good as part of one', () => {
+    expect(dealtBy({ perfect: 10, good: 5 })).toBeCloseTo(13)
   })
 })
 
