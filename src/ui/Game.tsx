@@ -171,9 +171,9 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
       )}
       {paused && (
         <div className="overlay">
-          <h2>Pausa</h2>
+          <h2 className="chrome">Pausa</h2>
           <div className="stack">
-            <button autoFocus onClick={resume}>
+            <button className="hot" autoFocus onClick={resume}>
               Seguir
             </button>
             <button onClick={() => setRunId((r) => r + 1)}>Reiniciar</button>

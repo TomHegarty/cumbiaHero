@@ -8,7 +8,7 @@ export interface Settings {
 
 const KEY = 'cumbiaHero.settings'
 
-const DEFAULTS: Settings = { offsetMs: 0, lookahead: 1.6, volume: 0.9 }
+const DEFAULTS: Settings = { offsetMs: 0, lookahead: 1.6, volume: 0.5 }
 
 export function loadSettings(): Settings {
   try {
