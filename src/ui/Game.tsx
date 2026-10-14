@@ -3,6 +3,7 @@ import { audioContext, loadAudio, SongPlayer } from '../engine/audio'
 import { SongTiming, timeChart } from '../engine/chart'
 import { Judge, type Stats } from '../engine/judge'
 import { LANE_COUNT, laneForCode } from '../engine/keys'
+import type { CrowdScene } from '../render/crowd3d'
 import { drawFrame, type Popup } from '../render/highway'
 import type { Settings } from '../settings'
 import type { Chart, Song } from '../songs/types'
@@ -20,6 +21,8 @@ const LEAD_IN = 2
 
 export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const crowdRef = useRef<HTMLCanvasElement>(null)
+  const sceneRef = useRef<CrowdScene | null>(null)
   const size = useCanvasSize(canvasRef)
   const [player, setPlayer] = useState<SongPlayer | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -42,6 +45,24 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
       p?.dispose()
     }
   }, [song.audio, settings.volume])
+
+  // The 3D crowd loads lazily; until it is ready (or if WebGL is missing) the 2D hall is drawn instead.
+  useEffect(() => {
+    let cancelled = false
+    const canvas = crowdRef.current
+    if (!canvas) return
+    import('../render/crowd3d')
+      .then(({ CrowdScene }) => {
+        if (cancelled) return
+        sceneRef.current = new CrowdScene(canvas)
+      })
+      .catch((e: unknown) => console.warn('3D crowd unavailable, using 2D backdrop', e))
+    return () => {
+      cancelled = true
+      sceneRef.current?.dispose()
+      sceneRef.current = null
+    }
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -119,6 +140,18 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
       if (player.playing) judge.update(judgeTime())
       const t = heardTime()
       const dpr = window.devicePixelRatio || 1
+      const scene = sceneRef.current
+      if (scene) {
+        const w = canvas.width / dpr
+        const h = canvas.height / dpr
+        scene.resize(w, h)
+        scene.render({
+          time: t,
+          beat: timing.tempo.timeToBeat(t),
+          combo: judge.stats.combo,
+          saborActive: judge.stats.saborActive,
+        })
+      }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       drawFrame(ctx, canvas.width / dpr, canvas.height / dpr, {
         time: t,
@@ -133,6 +166,7 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
         stats: judge.stats,
         multiplier: judge.multiplier,
         hud: true,
+        background: !scene,
       })
       if (player.playing && t >= endTime) finish()
     }
@@ -161,6 +195,7 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
 
   return (
     <div className="game">
+      <canvas ref={crowdRef} className="crowd-canvas" />
       <canvas ref={canvasRef} className="game-canvas" width={size.w} height={size.h} />
       {!player && !error && <div className="overlay">Cargando…</div>}
       {error && (

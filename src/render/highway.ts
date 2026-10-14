@@ -26,6 +26,8 @@ export interface FrameState {
   multiplier: number
   /** Hide HUD (used by the editor preview). */
   hud: boolean
+  /** Paint the 2D hall behind the highway; off when the 3D crowd is drawn underneath. */
+  background?: boolean
 }
 
 const GRADE_TEXT: Record<Grade, string> = { perfect: '¡PERFECTO!', good: 'BIEN', miss: 'FALLO' }
@@ -120,20 +122,24 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
   const l = layout(w, h)
   const zOf = (t: number) => (t - f.time) / f.lookahead
 
-  // Background: a smoky bailanta with a sunburst behind the horizon and a jumping crowd
-  const bg = ctx.createLinearGradient(0, 0, 0, h)
-  bg.addColorStop(0, '#6a0014')
-  bg.addColorStop(0.5, '#2a0008')
-  bg.addColorStop(1, '#0c0103')
-  ctx.fillStyle = bg
-  ctx.fillRect(0, 0, w, h)
-  drawSunburst(ctx, l.cx, l.topY, Math.hypot(w, h), f.time, f.stats.saborActive)
-  drawCrowd(ctx, w, h, {
-    time: f.time,
-    beat: f.tempo.timeToBeat(f.time),
-    combo: f.stats.combo,
-    saborActive: f.stats.saborActive,
-  })
+  if (f.background === false) {
+    ctx.clearRect(0, 0, w, h)
+  } else {
+    // Background: a smoky bailanta with a sunburst behind the horizon and a jumping crowd
+    const bg = ctx.createLinearGradient(0, 0, 0, h)
+    bg.addColorStop(0, '#6a0014')
+    bg.addColorStop(0.5, '#2a0008')
+    bg.addColorStop(1, '#0c0103')
+    ctx.fillStyle = bg
+    ctx.fillRect(0, 0, w, h)
+    drawSunburst(ctx, l.cx, l.topY, Math.hypot(w, h), f.time, f.stats.saborActive)
+    drawCrowd(ctx, w, h, {
+      time: f.time,
+      beat: f.tempo.timeToBeat(f.time),
+      combo: f.stats.combo,
+      saborActive: f.stats.saborActive,
+    })
+  }
 
   // Highway body
   const leftEdge = -LANE_COUNT / 2 - HAND_GAP / 2
