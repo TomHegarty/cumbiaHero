@@ -10,6 +10,8 @@ const song: Song = {
   offset: 0.48,
   tempo: [{ beat: 0, bpm: 86 }],
   // The off-beat keyboard stabs and güira are pushed ahead of a straight grid.
+  // The chart follows the lead synth only (tools/chartgen/synthchart.py), so
+  // it is empty while the vocals carry the song.
   groove: [0, -0.03, -0.07, -0.05],
   beatsPerBar: 4,
   charts: { normal: normal as Chart },
