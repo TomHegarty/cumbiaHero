@@ -1,29 +1,39 @@
 /*
- * Early-2000s tropical/cumbia CD aesthetic: chrome lettering with fat drop
- * shadows, sunburst backgrounds, glossy "aqua" buttons, starburst stickers
- * and a scrolling marquee.
+ * 2000s Latin American street graphics meets the Y2K digital turn: chrome
+ * and early-vector swooshes, photocopy grunge and halftone, chicha poster
+ * lettering, stencil protest graffiti and pirate-CD stickers, all in a warm
+ * cumbia red and yellow.
  */
 :root {
   --red: #e4002b;
+  --blood: #8a0018;
+  --wine: #2a0008;
   --orange: #ff7a00;
   --yellow: #ffe600;
-  --blue: #0038d6;
-  --deep: #0a0638;
+  --paper: #f4e4b4;
+  --ink: #140204;
+  --deep: #12020a;
   --cyan: #00d8ff;
   --magenta: #ff1fa9;
   --text: #fff;
-  --muted: #cfd6ff;
+  --muted: #ffd9a8;
   --display: 'Bungee', 'Arial Black', Impact, sans-serif;
+  --stencil: 'Black Ops One', 'Arial Black', Impact, sans-serif;
+  --marker: 'Permanent Marker', 'Comic Sans MS', cursive;
   --chrome: linear-gradient(
     180deg,
     #ffffff 0%,
-    #e9eef5 30%,
-    #8a96a8 48%,
-    #2b3140 52%,
-    #9aa6b8 70%,
+    #f5ece0 30%,
+    #a8968a 48%,
+    #3a2420 52%,
+    #b8a49a 70%,
     #ffffff 100%
   );
   --gold: linear-gradient(180deg, #fffbe0 0%, #ffe600 35%, #ff9d00 52%, #b34700 56%, #ffcc00 80%, #fff6b0 100%);
+  /* Photocopier noise and print halftone, reused across panels and screens */
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.4 -0.45'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --noise-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.9 -0.42'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --dots: radial-gradient(circle, rgba(0, 0, 0, 0.55) 1.2px, transparent 1.6px);
   color-scheme: dark;
   font-family: Verdana, 'Trebuchet MS', Tahoma, sans-serif;
   color: var(--text);
@@ -43,7 +53,7 @@ body,
 
 body {
   overflow: hidden;
-  background: radial-gradient(ellipse at 50% 40%, #2a1aa8 0%, #12085a 45%, var(--deep) 100%);
+  background: radial-gradient(ellipse at 50% 40%, #c4001f 0%, #6a0012 45%, var(--deep) 100%);
 }
 
 #root {
@@ -52,7 +62,7 @@ body {
   justify-content: center;
 }
 
-/* ---------- Backdrop: sunburst, sparkles, marquee ---------- */
+/* ---------- Backdrop: a pasted-up street wall ---------- */
 
 .backdrop {
   position: fixed;
@@ -70,8 +80,8 @@ body {
   margin: -130vmax 0 0 -130vmax;
   background: repeating-conic-gradient(
     from 0deg,
-    rgba(255, 230, 0, 0.55) 0deg 7.5deg,
-    rgba(228, 0, 43, 0.55) 7.5deg 15deg
+    rgba(255, 230, 0, 0.6) 0deg 7.5deg,
+    rgba(228, 0, 43, 0.5) 7.5deg 15deg
   );
   mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.75) 18%, transparent 42%);
   animation: spin 60s linear infinite;
@@ -87,13 +97,136 @@ body {
     transform: rotate(360deg);
   }
 }
+.swooshes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: screen;
+  opacity: 0.75;
+}
+.halftone {
+  position: absolute;
+  inset: 0;
+  background-image: var(--dots);
+  background-size: 7px 7px;
+  mask-image: linear-gradient(115deg, #000 0%, transparent 35%, transparent 65%, #000 100%);
+  opacity: 0.8;
+}
+.grunge {
+  position: absolute;
+  inset: 0;
+  background:
+    var(--noise),
+    radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(20, 2, 4, 0.75) 100%);
+  mix-blend-mode: multiply;
+}
+
+/* Spray-painted stencil slogans */
+.stencil {
+  position: absolute;
+  font-family: var(--stencil);
+  font-size: clamp(1.6rem, 4.2vw, 3.6rem);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: rgba(20, 2, 4, 0.72);
+  filter: blur(0.6px);
+  text-shadow:
+    0 0 6px rgba(20, 2, 4, 0.5),
+    0 0 18px rgba(20, 2, 4, 0.35);
+  white-space: nowrap;
+}
+.stencil.s1 {
+  left: 2%;
+  top: 6%;
+  transform: rotate(-6deg);
+}
+.stencil.s2 {
+  right: 1%;
+  top: 16%;
+  font-size: clamp(1.3rem, 3vw, 2.6rem);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg) skewY(-4deg);
+  color: rgba(255, 230, 0, 0.55);
+  text-shadow: 0 0 10px rgba(255, 230, 0, 0.3);
+}
+
+/* Chicha-style bailable poster, wheatpasted and peeling */
+.poster {
+  position: absolute;
+  left: 3%;
+  bottom: 12%;
+  width: 190px;
+  padding: 10px 10px 12px;
+  text-align: center;
+  font-family: var(--display);
+  line-height: 1;
+  color: var(--ink);
+  background:
+    var(--noise-soft),
+    linear-gradient(180deg, var(--yellow) 0 30%, var(--orange) 30% 62%, var(--red) 62%);
+  box-shadow: 5px 6px 0 rgba(0, 0, 0, 0.45);
+  transform: rotate(-5deg);
+  clip-path: polygon(0 2%, 8% 0, 30% 1%, 55% 0, 78% 2%, 100% 0, 99% 40%, 100% 76%, 97% 100%, 60% 98%, 22% 100%, 0 97%, 2% 60%);
+}
+.poster-top {
+  font-size: 1.15rem;
+}
+.poster-big {
+  margin: 8px 0 6px;
+  font-size: 2.3rem;
+  color: #fff;
+  -webkit-text-stroke: 2px var(--ink);
+  text-shadow: 3px 3px 0 var(--ink);
+}
+.poster-mid {
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  color: #fff;
+}
+.poster-foot {
+  margin-top: 10px;
+  padding: 3px 0;
+  font-size: 0.6rem;
+  color: var(--yellow);
+  background: var(--ink);
+}
+
+/* Peso coin sticker, a nod to the 2001 corralito */
+.peso {
+  position: absolute;
+  right: 4%;
+  top: 14%;
+  width: 118px;
+  height: 118px;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  border-radius: 50%;
+  color: #3a0d00;
+  background: radial-gradient(circle at 35% 30%, #fff8c0, #ffcc00 40%, #b36b00 100%);
+  border: 4px double #6a3200;
+  box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.45);
+  transform: rotate(14deg);
+}
+.peso span {
+  font-family: var(--display);
+  font-size: 2.6rem;
+  line-height: 1;
+}
+.peso small {
+  font-family: var(--stencil);
+  font-size: 0.5rem;
+  letter-spacing: 0.03em;
+}
+
 .sparkle {
   position: absolute;
   width: 26px;
   height: 26px;
   background: #fff;
   clip-path: polygon(50% 0, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%);
-  filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px var(--cyan));
+  filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px var(--yellow));
   animation: twinkle 2.4s ease-in-out infinite;
 }
 @keyframes twinkle {
@@ -113,8 +246,9 @@ body {
   right: 0;
   bottom: 0;
   padding: 6px 0;
-  background: linear-gradient(180deg, #ff2a2a, var(--red) 50%, #8a0018);
-  border-top: 3px solid var(--yellow);
+  background: linear-gradient(180deg, #ff2a2a, var(--red) 50%, var(--blood));
+  border-top: 6px solid transparent;
+  border-image: repeating-linear-gradient(-45deg, var(--yellow) 0 12px, var(--ink) 12px 24px) 6;
   box-shadow: 0 -4px 18px rgba(255, 230, 0, 0.45);
   white-space: nowrap;
   font-family: var(--display);
@@ -125,7 +259,7 @@ body {
 .marquee span {
   display: inline-block;
   padding-left: 100%;
-  animation: scroll 22s linear infinite;
+  animation: scroll 34s linear infinite;
 }
 @keyframes scroll {
   to {
@@ -135,22 +269,30 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .sunburst,
   .sparkle,
-  .marquee span {
+  .marquee span,
+  .cd,
+  .sticker {
     animation: none;
   }
 }
+@media (max-width: 720px) {
+  .poster,
+  .peso,
+  .stencil.s2 {
+    display: none;
+  }
+}
 
-/* ---------- Chrome type ---------- */
+/* ---------- Type: Y2K chrome, gold and chicha block letters ---------- */
 
-.chrome,
-.logo .word {
+.chrome {
   font-family: var(--display);
   background: var(--chrome);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  -webkit-text-stroke: 1.5px #0b0b2a;
-  filter: drop-shadow(3px 4px 0 #000) drop-shadow(0 0 10px rgba(0, 216, 255, 0.7));
+  -webkit-text-stroke: 1.5px var(--ink);
+  filter: drop-shadow(3px 4px 0 #000) drop-shadow(0 0 10px rgba(255, 122, 0, 0.75));
 }
 .gold {
   background: var(--gold);
@@ -162,6 +304,7 @@ body {
 }
 
 .logo {
+  position: relative;
   margin: 0;
   line-height: 0.95;
   transform: skew(-8deg) rotate(-3deg);
@@ -171,30 +314,55 @@ body {
 }
 .logo .word {
   display: block;
+  font-family: var(--display);
 }
-.logo .word.gold {
-  background: var(--gold);
+/* Chicha poster lettering: hot fill, black keyline, stacked offset shadows */
+.logo .word:first-child {
+  background: linear-gradient(180deg, #fff6b0 0%, var(--yellow) 30%, var(--orange) 62%, var(--red) 100%);
   -webkit-background-clip: text;
   background-clip: text;
-  -webkit-text-stroke: 1.5px #3a0d00;
-  filter: drop-shadow(3px 4px 0 #000) drop-shadow(0 0 14px rgba(255, 60, 0, 0.9));
+  color: transparent;
+  -webkit-text-stroke: 2px var(--ink);
+  filter: drop-shadow(3px 3px 0 var(--ink)) drop-shadow(4px 4px 0 var(--red)) drop-shadow(3px 3px 0 var(--ink));
+}
+.logo .word.gold {
+  background: var(--chrome);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-stroke: 1.5px var(--ink);
+  filter: drop-shadow(3px 4px 0 #000) drop-shadow(0 0 14px rgba(255, 160, 0, 0.95));
   font-size: 1.15em;
+}
+/* Hand-tagged scrawl over the logo */
+.logo::after {
+  content: '¡de culto!';
+  position: absolute;
+  left: 64%;
+  bottom: 2%;
+  white-space: nowrap;
+  font-family: var(--marker);
+  font-size: 0.32em;
+  color: var(--yellow);
+  transform: rotate(-10deg) skew(8deg);
+  text-shadow: 2px 2px 0 var(--ink);
 }
 
 .ribbon {
   display: inline-block;
-  margin: 18px 0 6px;
-  padding: 4px 22px;
-  font-family: var(--display);
-  font-size: 0.95rem;
-  color: #fff;
-  text-shadow: 2px 2px 0 #000;
-  background: linear-gradient(180deg, #ff4fc3, var(--magenta) 55%, #a0005f);
+  margin: 22px 0 6px;
+  padding: 5px 26px;
+  font-family: var(--marker);
+  font-size: 1.15rem;
+  color: var(--yellow);
+  text-shadow: 2px 2px 0 var(--ink);
+  background:
+    var(--noise),
+    linear-gradient(180deg, #ff3b3b, var(--red) 55%, var(--blood));
   clip-path: polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%);
   transform: rotate(-2deg);
 }
 
-/* ---------- Controls ---------- */
+/* ---------- Controls: glossy Y2K pills in cumbia colours ---------- */
 
 button {
   position: relative;
@@ -202,14 +370,14 @@ button {
   font-size: 1rem;
   color: #fff;
   text-shadow: 1px 2px 0 rgba(0, 0, 0, 0.6);
-  background: linear-gradient(180deg, #7fd0ff 0%, #1a7dff 48%, #0046c7 52%, #3aa0ff 100%);
-  border: 2px solid #001a66;
+  background: linear-gradient(180deg, #ff8a8a 0%, #ff2a2a 48%, #c4001f 52%, #ff4d4d 100%);
+  border: 2px solid #4a000c;
   border-radius: 999px;
   padding: 0.5em 1.4em;
   cursor: pointer;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 4px 0 #001a66,
+    0 4px 0 #4a000c,
     0 6px 14px rgba(0, 0, 0, 0.5);
   transition:
     transform 0.08s,
@@ -228,13 +396,17 @@ button::before {
   pointer-events: none;
 }
 button:hover:not(:disabled) {
-  transform: translateY(-1px) scale(1.04);
+  transform: translateY(-1px) scale(1.04) rotate(-1deg);
 }
 button:active:not(:disabled) {
   transform: translateY(3px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 1px 0 #001a66;
+    0 1px 0 #4a000c;
+}
+button:focus-visible {
+  outline: 3px dashed var(--yellow);
+  outline-offset: 4px;
 }
 button:disabled {
   filter: grayscale(1);
@@ -252,13 +424,13 @@ button.hot {
     0 6px 14px rgba(0, 0, 0, 0.5);
 }
 button.secondary {
-  background: linear-gradient(180deg, #f2f4f8 0%, #c3cad6 48%, #8e98aa 52%, #d9dee8 100%);
-  border-color: #2b3140;
-  color: #141a2a;
+  background: linear-gradient(180deg, #faf6f0 0%, #d6cbc0 48%, #9a8a7e 52%, #e8e0d6 100%);
+  border-color: #3a2420;
+  color: var(--ink);
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
   box-shadow:
     inset 0 1px 0 #fff,
-    0 4px 0 #2b3140,
+    0 4px 0 #3a2420,
     0 6px 14px rgba(0, 0, 0, 0.5);
 }
 
@@ -269,24 +441,24 @@ kbd {
   font-family: var(--display);
   font-size: 0.85em;
   text-align: center;
-  color: #141a2a;
-  background: linear-gradient(180deg, #fff, #c3cad6 55%, #8e98aa);
-  border: 2px solid #2b3140;
+  color: var(--ink);
+  background: linear-gradient(180deg, #fff, #d6cbc0 55%, #9a8a7e);
+  border: 2px solid #3a2420;
   border-radius: 6px;
-  box-shadow: 0 2px 0 #2b3140;
+  box-shadow: 0 2px 0 #3a2420;
 }
 
 input,
 select {
   font: inherit;
-  background: #000a3a;
+  background: var(--ink);
   color: var(--yellow);
-  border: 2px inset #8e98aa;
+  border: 2px inset #9a8a7e;
   border-radius: 3px;
   padding: 2px 6px;
 }
 
-/* ---------- Panels (jewel case) ---------- */
+/* ---------- Panels: a black afiche taped to the wall ---------- */
 
 .panel {
   position: relative;
@@ -294,18 +466,33 @@ select {
   width: min(700px, calc(100% - 32px));
   max-height: calc(100% - 70px);
   overflow: auto;
-  padding: 30px 28px 26px;
+  padding: 34px 28px 26px;
   text-align: center;
-  border-radius: 6px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 38%),
-    linear-gradient(180deg, rgba(16, 10, 90, 0.92), rgba(6, 3, 40, 0.94));
-  border: 3px solid transparent;
-  border-image: linear-gradient(180deg, #fff, #8e98aa 45%, #2b3140 55%, #d9dee8) 1;
+    var(--noise),
+    radial-gradient(circle at 100% 0%, rgba(228, 0, 43, 0.55) 0, transparent 45%),
+    radial-gradient(circle at 0% 100%, rgba(255, 122, 0, 0.35) 0, transparent 40%),
+    linear-gradient(180deg, rgba(30, 4, 8, 0.95), rgba(14, 2, 4, 0.97));
+  border: 4px solid var(--yellow);
+  outline: 3px solid var(--ink);
   box-shadow:
-    0 0 0 2px #000,
-    0 18px 50px rgba(0, 0, 0, 0.7),
-    0 0 60px rgba(255, 122, 0, 0.35);
+    10px 10px 0 var(--red),
+    10px 10px 0 3px var(--ink),
+    0 22px 60px rgba(0, 0, 0, 0.7);
+  transform: rotate(-0.6deg);
+}
+/* Halftone fade in the corner, like a cheap two-colour print run */
+.panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255, 230, 0, 0.35) 1.3px, transparent 1.7px);
+  background-size: 8px 8px;
+  mask-image: radial-gradient(circle at 0% 0%, #000 0%, transparent 38%);
+  pointer-events: none;
+}
+.panel > * {
+  position: relative;
 }
 .panel h2 {
   font-family: var(--display);
@@ -342,19 +529,45 @@ select {
 .songs {
   list-style: none;
   padding: 0;
-  margin: 22px 0;
+  margin: 26px 0 22px;
   text-align: left;
 }
+/* Each chart is a photocopied flyer with tape at the corners */
 .songs li {
   position: relative;
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 16px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, rgba(0, 56, 214, 0.55), rgba(255, 31, 169, 0.35));
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  padding: 16px 16px 14px;
+  color: var(--ink);
+  background:
+    var(--noise-soft),
+    radial-gradient(circle, rgba(228, 0, 43, 0.25) 1.2px, transparent 1.6px) 0 0 / 6px 6px,
+    linear-gradient(100deg, var(--paper), #ffeec2 60%, #e8cf8c);
+  box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.6);
+  transform: rotate(0.8deg);
+}
+.songs li::before,
+.songs li::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  width: 70px;
+  height: 22px;
+  background: rgba(255, 246, 200, 0.6);
+  border-left: 2px dotted rgba(0, 0, 0, 0.12);
+  border-right: 2px dotted rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.songs li::before {
+  left: -14px;
+  transform: rotate(-28deg);
+}
+.songs li::after {
+  right: 60px;
+  top: auto;
+  bottom: -10px;
+  transform: rotate(-8deg);
 }
 .songs .info {
   flex: 1;
@@ -362,28 +575,51 @@ select {
 }
 .songs .title {
   font-family: var(--display);
-  font-size: 1.25rem;
-  color: var(--yellow);
-  text-shadow: 2px 2px 0 #000;
+  font-size: 1.35rem;
+  color: var(--red);
+  text-shadow: 2px 2px 0 var(--ink);
 }
 .songs .artist {
-  font-weight: 700;
-  font-style: italic;
+  font-family: var(--marker);
+  font-size: 1.1rem;
+}
+.songs .meta {
+  color: #5a2a14;
+}
+@media (max-width: 520px) {
+  .songs li {
+    flex-wrap: wrap;
+  }
+  .songs .row {
+    width: 100%;
+  }
 }
 
-/* CD disc with rainbow sheen */
+/* CD-R with rainbow sheen and a Sharpie label */
 .cd {
+  position: relative;
   flex: none;
   width: 64px;
   height: 64px;
   border-radius: 50%;
   background:
-    radial-gradient(circle, #0a0638 0 9%, #c3cad6 10% 13%, transparent 14%),
-    conic-gradient(#e8f0ff, #ffd1f0, #c9ffe6, #fff6b0, #c4d8ff, #ffd1f0, #e8f0ff);
+    radial-gradient(circle, #1e0408 0 9%, #d6cbc0 10% 13%, transparent 14%),
+    conic-gradient(#fff3e0, #ffd1d1, #fff6b0, #ffe0b0, #ffd1d1, #fff6b0, #fff3e0);
   box-shadow:
-    0 0 0 2px #2b3140,
+    0 0 0 2px #3a2420,
     0 3px 8px rgba(0, 0, 0, 0.6);
   animation: spin 4s linear infinite;
+}
+.cd::after {
+  content: 'cumbia vol.1';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 16%;
+  text-align: center;
+  font-family: var(--marker);
+  font-size: 0.55rem;
+  color: #1e0408;
 }
 
 /* Starburst sticker */
@@ -391,16 +627,16 @@ select {
   position: absolute;
   right: -14px;
   top: -26px;
-  width: 78px;
-  height: 78px;
+  width: 84px;
+  height: 84px;
   display: grid;
   place-items: center;
   text-align: center;
   font-family: var(--display);
   font-size: 0.62rem;
   line-height: 1.05;
-  color: var(--red);
-  background: var(--yellow);
+  color: var(--yellow);
+  background: var(--red);
   clip-path: polygon(
     50% 0%, 61% 12%, 75% 6%, 78% 21%, 94% 22%, 89% 37%, 100% 50%, 89% 63%, 94% 78%, 78% 79%,
     75% 94%, 61% 88%, 50% 100%, 39% 88%, 25% 94%, 22% 79%, 6% 78%, 11% 63%, 0% 50%, 11% 37%,
@@ -447,6 +683,18 @@ select {
   height: 100%;
   display: block;
 }
+/* Photocopy grain and a burnt vignette over the highway */
+.game::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    var(--noise),
+    radial-gradient(ellipse at 50% 55%, transparent 55%, rgba(20, 2, 4, 0.6) 100%);
+  mix-blend-mode: multiply;
+  opacity: 0.4;
+  pointer-events: none;
+}
 .overlay {
   position: absolute;
   inset: 0;
@@ -454,7 +702,10 @@ select {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(5, 2, 30, 0.75);
+  z-index: 1;
+  background:
+    radial-gradient(circle, rgba(255, 230, 0, 0.18) 1.3px, transparent 1.7px) 0 0 / 8px 8px,
+    rgba(20, 2, 6, 0.8);
   font-family: var(--display);
   font-size: 1.3rem;
 }
@@ -462,6 +713,16 @@ select {
   font-size: 3rem;
   font-weight: 400;
   margin: 0 0 10px;
+  transform: rotate(-3deg);
+}
+.overlay h2::after {
+  content: 'pará la música';
+  display: block;
+  font-family: var(--marker);
+  font-size: 1.1rem;
+  color: var(--yellow);
+  -webkit-text-stroke: 0;
+  text-shadow: 2px 2px 0 var(--ink);
 }
 
 /* ---------- Results ---------- */
@@ -517,9 +778,12 @@ select {
   gap: 8px;
   align-items: center;
   padding: 8px 12px;
-  background: linear-gradient(180deg, #f2f4f8 0%, #c3cad6 48%, #8e98aa 52%, #d9dee8 100%);
-  border-bottom: 2px solid #000;
-  color: #141a2a;
+  background:
+    var(--noise-soft),
+    linear-gradient(180deg, #fff27a 0%, var(--yellow) 48%, #ffc400 52%, #fff06a 100%);
+  border-bottom: 6px solid transparent;
+  border-image: repeating-linear-gradient(-45deg, var(--ink) 0 12px, var(--red) 12px 24px) 6;
+  color: var(--ink);
   font-size: 0.85rem;
   font-weight: 700;
 }
@@ -528,7 +792,7 @@ select {
   padding: 0.35em 0.9em;
 }
 .toolbar .meta {
-  color: #2b3140;
+  color: #5a2a14;
 }
 .toolbar label {
   display: flex;
@@ -549,7 +813,10 @@ select {
   cursor: crosshair;
 }
 .editor .hint {
-  margin: 4px 12px 8px;
+  margin: 0;
+  padding: 6px 12px 8px;
+  background: var(--ink);
+  border-top: 2px solid var(--red);
 }
 
 /* ---------- Menu settings ---------- */
@@ -589,7 +856,7 @@ select {
   height: 22px;
   border-radius: 50%;
   border: 2px solid #000;
-  background: radial-gradient(circle at 35% 30%, #fff, #c3cad6 40%, #5a6478);
+  background: radial-gradient(circle at 35% 30%, #fff, #d6cbc0 40%, #6a5a50);
   cursor: pointer;
 }
 .volume input[type='range']::-moz-range-thumb {
@@ -597,6 +864,6 @@ select {
   height: 22px;
   border-radius: 50%;
   border: 2px solid #000;
-  background: radial-gradient(circle at 35% 30%, #fff, #c3cad6 40%, #5a6478);
+  background: radial-gradient(circle at 35% 30%, #fff, #d6cbc0 40%, #6a5a50);
   cursor: pointer;
 }
