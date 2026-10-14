@@ -14,6 +14,10 @@ export interface VersusState {
   youTrail: number
   rivalTrail: number
   secondsLeft: number
+  /** Whose turn it is; their name lights up. */
+  active?: 'you' | 'rival' | null
+  /** Turn announcement under the banner, and how long it has been showing. */
+  callout?: { text: string; age: number; hot: boolean }
 }
 
 const FONT = "'Bungee', 'Arial Black', Impact, sans-serif"
@@ -62,14 +66,47 @@ export function drawVersus(ctx: CanvasRenderingContext2D, w: number, v: VersusSt
   ctx.textBaseline = 'top'
   ctx.lineWidth = 4
   ctx.strokeStyle = '#000'
+  const ny = y + 6 + barH + 5
+  const youLabel = v.active === 'you' ? `▶ ${v.youName}` : v.youName
+  const rivalLabel = v.active === 'rival' ? `${v.rivalName} ◀` : v.rivalName
   ctx.textAlign = 'left'
-  ctx.strokeText(v.youName, x0, y + 6 + barH + 5)
+  ctx.globalAlpha = v.active === 'rival' ? 0.55 : 1
+  ctx.strokeText(youLabel, x0, ny)
   ctx.fillStyle = '#ffe600'
-  ctx.fillText(v.youName, x0, y + 6 + barH + 5)
+  ctx.fillText(youLabel, x0, ny)
   ctx.textAlign = 'right'
-  ctx.strokeText(v.rivalName, x0 + bw, y + 6 + barH + 5)
+  ctx.globalAlpha = v.active === 'you' ? 0.55 : 1
+  ctx.strokeText(rivalLabel, x0 + bw, ny)
   ctx.fillStyle = '#ff5a5a'
-  ctx.fillText(v.rivalName, x0 + bw, y + 6 + barH + 5)
+  ctx.fillText(rivalLabel, x0 + bw, ny)
+  ctx.globalAlpha = 1
+
+  if (v.callout) drawCallout(ctx, cx, ny + 52, v.callout)
+  ctx.restore()
+}
+
+/** A slanted sticker-style announcement that slams in and fades after a couple of seconds. */
+function drawCallout(ctx: CanvasRenderingContext2D, cx: number, cy: number, c: { text: string; age: number; hot: boolean }): void {
+  if (c.age < 0 || c.age > 2.2) return
+  const scale = c.age < 0.15 ? 1.6 - (c.age / 0.15) * 0.6 : 1
+  ctx.save()
+  ctx.globalAlpha = c.age > 1.7 ? 1 - (c.age - 1.7) / 0.5 : 1
+  ctx.translate(cx, cy)
+  ctx.rotate(-0.05)
+  ctx.scale(scale, scale)
+  ctx.font = `30px ${FONT}`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  const tw = ctx.measureText(c.text).width
+  ctx.fillStyle = '#000'
+  ctx.fillRect(-tw / 2 - 18 + 5, -24 + 5, tw + 36, 48)
+  ctx.fillStyle = c.hot ? '#ffe600' : '#e4002b'
+  ctx.fillRect(-tw / 2 - 18, -24, tw + 36, 48)
+  ctx.lineWidth = 3
+  ctx.strokeStyle = '#000'
+  ctx.strokeRect(-tw / 2 - 18, -24, tw + 36, 48)
+  ctx.fillStyle = c.hot ? '#140204' : '#fff'
+  ctx.fillText(c.text, 0, 2)
   ctx.restore()
 }
 

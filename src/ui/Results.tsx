@@ -1,21 +1,24 @@
+import type { DuelResult } from '../engine/duel'
 import { accuracy, letterGrade, type Stats } from '../engine/judge'
 import type { Song } from '../songs/types'
 
 interface Props {
   song: Song
   stats: Stats
+  duel?: DuelResult
   newBest: boolean
   onRetry: () => void
   onMenu: () => void
 }
 
-export function Results({ song, stats, newBest, onRetry, onMenu }: Props) {
+export function Results({ song, stats, duel, newBest, onRetry, onMenu }: Props) {
   const acc = accuracy(stats)
   return (
     <div className="panel results">
       <p className="subtitle">
         {song.title} — {song.artist}
       </p>
+      {duel && <DuelVerdict duel={duel} />}
       <div className="grade gold">{letterGrade(acc)}</div>
       <div className="score">{Math.round(stats.score).toLocaleString()}</div>
       {newBest && <p className="new-best">¡Nuevo récord!</p>}
@@ -49,6 +52,20 @@ export function Results({ song, stats, newBest, onRetry, onMenu }: Props) {
         </button>
         <button onClick={onMenu}>Menú</button>
       </div>
+    </div>
+  )
+}
+
+function DuelVerdict({ duel }: { duel: DuelResult }) {
+  const pct = (v: number) => `${Math.round(Math.max(0, v) * 100)}%`
+  const won = duel.you > duel.rival
+  const tie = Math.abs(duel.you - duel.rival) < 0.005
+  return (
+    <div className={`duel-verdict ${tie ? 'tie' : won ? 'won' : 'lost'}`}>
+      <strong>{tie ? '¡EMPATE!' : won ? `¡LE GANASTE A ${duel.rivalName}!` : `${duel.rivalName} TE GANÓ`}</strong>
+      <span>
+        VOS {pct(duel.you)} · {duel.rivalName} {pct(duel.rival)}
+      </span>
     </div>
   )
 }

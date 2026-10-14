@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { audioContext, loadAudio, SongPlayer } from '../engine/audio'
 import { SongTiming, timeChart } from '../engine/chart'
+import { AiPlayer, BARS_PER_TURN, damageFor, splitChart, turnIndex, turnOrigin, type DuelResult } from '../engine/duel'
 import { Judge, type Stats } from '../engine/judge'
 import { LANE_COUNT, laneForCode } from '../engine/keys'
 import type { CrowdScene } from '../render/crowd3d'
@@ -14,17 +15,18 @@ interface Props {
   song: Song
   chart: Chart
   settings: Settings
-  onFinish: (stats: Stats) => void
+  /** Take turns against the AI; off for editor test plays, where you play the whole chart. */
+  duel: boolean
+  onFinish: (stats: Stats, duel?: DuelResult) => void
   onQuit: () => void
 }
 
 const LEAD_IN = 2
+const YOU_NAME = 'VOS'
 const RIVAL_NAME = 'EL RAYO'
-/** Health lost per dropped note and regained per hit, for the duel banner. */
-const MISS_DAMAGE = 0.08
-const HIT_HEAL = 0.02
+const RIVAL_SKILL = 0.85
 
-export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
+export function Game({ song, chart, settings, duel, onFinish, onQuit }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const crowdRef = useRef<HTMLCanvasElement>(null)
   const sceneRef = useRef<CrowdScene | null>(null)
@@ -76,7 +78,14 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
     if (!ctx) return
 
     const timing = new SongTiming(song)
-    const judge = new Judge(timeChart(chart, timing))
+    // In a duel you and the rival take alternating phrases; you only play (and score) yours
+    const bpb = song.beatsPerBar
+    const origin = turnOrigin(chart, bpb)
+    const [yourPart, rivalPart] = duel ? splitChart(chart, bpb, 2) : [chart, { ...chart, notes: [] }]
+    const judge = new Judge(timeChart(yourPart, timing))
+    const ai = new AiPlayer(timeChart(rivalPart, timing), RIVAL_SKILL)
+    const aiPressed: boolean[] = Array.from({ length: LANE_COUNT }, () => false)
+    const shown: boolean[] = Array.from({ length: LANE_COUNT }, () => false)
     const pressed: boolean[] = Array.from({ length: LANE_COUNT }, () => false)
     const popups: Popup[] = []
     const actx = audioContext()
@@ -88,34 +97,66 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
     const heardTime = () => player.currentTime - (actx.outputLatency || 0) * player.playbackRate
     const judgeTime = () => heardTime() - offset
 
-    // Duel health: drops are your damage, every hit chips away at the rival
-    let youHp = 1
+    // Duel health: every note you land in your turn chips the rival's bar, and theirs chips yours,
+    // so a flawless set of turns empties the other side
+    let youDealt = 0
+    let rivalDealt = 0
     let youTrail = 1
     let rivalTrail = 1
-    let dealt = 0
     let missAt = -Infinity
-    const totalNotes = Math.max(1, judge.notes.length)
+    let rivalMissAt = -Infinity
+    const youHp = () => 1 - rivalDealt / Math.max(1, ai.notes.length)
+    const rivalHp = () => 1 - youDealt / Math.max(1, judge.notes.length)
+    const popup = (grade: Popup['grade'], lane: number) => {
+      popups.push({ grade, lane, at: heardTime() })
+      if (popups.length > 24) popups.shift()
+    }
 
     judge.onJudge((e) => {
-      if (e.grade === 'miss') {
-        youHp = Math.max(0, youHp - MISS_DAMAGE)
-        missAt = heardTime()
-      } else {
-        youHp = Math.min(1, youHp + HIT_HEAL)
-        dealt += e.grade === 'perfect' ? 1 : 0.6
-      }
-      popups.push({ grade: e.grade, lane: e.lane, at: heardTime() })
-      if (popups.length > 24) popups.shift()
+      if (e.grade === 'miss') missAt = heardTime()
+      youDealt += damageFor(e.grade)
+      popup(e.grade, e.lane)
+    })
+    ai.onJudge((e) => {
+      if (e.grade === 'miss') rivalMissAt = heardTime()
+      rivalDealt += damageFor(e.grade)
+      popup(e.grade, e.lane)
     })
 
-    const lastNote = judge.notes.length ? judge.notes[judge.notes.length - 1].end : 0
+    const lastNote = Math.max(
+      judge.notes.length ? judge.notes[judge.notes.length - 1].end : 0,
+      ai.notes.length ? ai.notes[ai.notes.length - 1].end : 0,
+    )
+    const lastBeat = timing.tempo.timeToBeat(lastNote)
+    const turnBeats = bpb * BARS_PER_TURN
+    /** Whose turn it is at `beat`, which beat it began on, and whether you are up next. */
+    const turnAt = (beat: number) => {
+      const i = turnIndex(beat, bpb, origin)
+      const start = origin + i * turnBeats
+      const active: 'you' | 'rival' | null = i < 0 || start > lastBeat ? null : i % 2 === 0 ? 'you' : 'rival'
+      return { active, start, youNext: (i === -1 || (i >= 0 && i % 2 === 1)) && start + turnBeats <= lastBeat }
+    }
     const endTime = Math.min(player.duration, Math.max(lastNote + 3, 10))
+
+    /** Announce each turn as it starts, and warn you a bar before yours. */
+    const callout = (beat: number, turn: ReturnType<typeof turnAt>) => {
+      const t = heardTime()
+      const warnBeat = turn.start + turnBeats - bpb
+      if (turn.youNext && turn.active !== 'you' && beat >= warnBeat) {
+        return { text: '¡PREPARATE!', age: t - timing.tempo.beatToTime(warnBeat), hot: true }
+      }
+      if (!turn.active) return undefined
+      const age = t - timing.tempo.beatToTime(turn.start)
+      return turn.active === 'you'
+        ? { text: '¡TU TURNO!', age, hot: true }
+        : { text: `TURNO DE ${RIVAL_NAME}`, age, hot: false }
+    }
 
     const finish = () => {
       if (done) return
       done = true
       player.pause()
-      onFinish({ ...judge.stats })
+      onFinish({ ...judge.stats }, duel ? { rivalName: RIVAL_NAME, you: youHp(), rival: rivalHp() } : undefined)
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -157,8 +198,15 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
 
     const frame = () => {
       raf = requestAnimationFrame(frame)
-      if (player.playing) judge.update(judgeTime())
       const t = heardTime()
+      if (player.playing) {
+        judge.update(judgeTime())
+        ai.update(t)
+      }
+      ai.pressedAt(t, aiPressed)
+      for (let i = 0; i < LANE_COUNT; i++) shown[i] = pressed[i] || aiPressed[i]
+      const beat = timing.tempo.timeToBeat(t)
+      const turn = turnAt(beat)
       const dpr = window.devicePixelRatio || 1
       const scene = sceneRef.current
       if (scene) {
@@ -167,10 +215,12 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
         scene.resize(w, h)
         scene.render({
           time: t,
-          beat: timing.tempo.timeToBeat(t),
+          beat,
           combo: judge.stats.combo,
           saborActive: judge.stats.saborActive,
           missAt,
+          rivalMissAt,
+          turn: duel ? (turn.active ?? undefined) : undefined,
         })
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -182,25 +232,32 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
         states: judge.states,
         tempo: timing.tempo,
         beatsPerBar: song.beatsPerBar,
-        pressed,
+        pressed: shown,
         popups,
         stats: judge.stats,
         multiplier: judge.multiplier,
         hud: true,
         background: !scene,
+        ghosts: [{ notes: ai.notes, states: ai.states }],
+        idle: duel && turn.active === 'rival',
       })
-      const rivalHp = 1 - dealt / totalNotes
-      youTrail = Math.max(youHp, youTrail - 0.006)
-      rivalTrail = Math.max(rivalHp, rivalTrail - 0.006)
-      drawVersus(ctx, canvas.width / dpr, {
-        youName: 'VOS',
-        rivalName: RIVAL_NAME,
-        you: youHp,
-        rival: rivalHp,
-        youTrail,
-        rivalTrail,
-        secondsLeft: endTime - t,
-      })
+      if (duel) {
+        const you = youHp()
+        const rival = rivalHp()
+        youTrail = Math.max(you, youTrail - 0.006)
+        rivalTrail = Math.max(rival, rivalTrail - 0.006)
+        drawVersus(ctx, canvas.width / dpr, {
+          youName: YOU_NAME,
+          rivalName: RIVAL_NAME,
+          you,
+          rival,
+          youTrail,
+          rivalTrail,
+          secondsLeft: endTime - t,
+          active: turn.active,
+          callout: callout(beat, turn),
+        })
+      }
       if (player.playing && t >= endTime) finish()
     }
     raf = requestAnimationFrame(frame)
@@ -217,7 +274,7 @@ export function Game({ song, chart, settings, onFinish, onQuit }: Props) {
       player.setOnEnded(null)
       player.pause()
     }
-  }, [player, song, chart, settings, onFinish, runId])
+  }, [player, song, chart, settings, duel, onFinish, runId])
 
   const resume = () => {
     if (!player) return

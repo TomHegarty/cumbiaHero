@@ -71,6 +71,10 @@ export interface CrowdState {
   saborActive: boolean
   /** Song time of the player's most recent miss, so the rival can gloat. */
   missAt?: number
+  /** Same for the rival, so the player can gloat back. */
+  rivalMissAt?: number
+  /** Whose turn it is in a duel; the other keyboardist steps back and taunts. */
+  turn?: 'you' | 'rival'
 }
 
 export function drawCrowd(ctx: CanvasRenderingContext2D, w: number, h: number, s: CrowdState): void {

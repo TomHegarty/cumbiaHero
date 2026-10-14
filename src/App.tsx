@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import type { Stats } from './engine/judge'
+import type { DuelResult } from './engine/duel'
 import { loadSettings, saveBest, saveSettings, type Settings } from './settings'
 import type { Chart, Song } from './songs/types'
 import { Backdrop } from './ui/Backdrop'
@@ -13,7 +14,7 @@ type Screen =
   | { name: 'menu' }
   | { name: 'calibrate' }
   | { name: 'play'; song: Song; chartKey: string; chart: Chart; fromEditor: boolean }
-  | { name: 'results'; song: Song; chartKey: string; chart: Chart; stats: Stats; newBest: boolean; fromEditor: boolean }
+  | { name: 'results'; song: Song; chartKey: string; chart: Chart; stats: Stats; duel?: DuelResult; newBest: boolean; fromEditor: boolean }
   | { name: 'editor'; song: Song; chartKey: string; chart: Chart }
 
 export default function App() {
@@ -26,11 +27,11 @@ export default function App() {
     setScreen({ name: 'play', song, chartKey, chart, fromEditor })
 
   const onFinish = useCallback(
-    (stats: Stats) =>
+    (stats: Stats, duel?: DuelResult) =>
       setScreen((s) => {
         if (s.name !== 'play') return s
         const newBest = !s.fromEditor && saveBest(s.song.id, s.chartKey, stats.score)
-        return { ...s, name: 'results', stats, newBest }
+        return { ...s, name: 'results', stats, duel, newBest }
       }),
     [],
   )
@@ -82,6 +83,7 @@ export default function App() {
             song={screen.song}
             chart={screen.chart}
             settings={settings}
+            duel={!screen.fromEditor}
             onFinish={onFinish}
             onQuit={() =>
               screen.fromEditor
@@ -95,6 +97,7 @@ export default function App() {
           <Results
             song={screen.song}
             stats={screen.stats}
+            duel={screen.duel}
             newBest={screen.newBest}
             onRetry={() => play(screen.song, screen.chartKey, screen.chart, screen.fromEditor)}
             onMenu={() =>

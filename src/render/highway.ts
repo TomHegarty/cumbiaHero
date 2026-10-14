@@ -28,6 +28,10 @@ export interface FrameState {
   hud: boolean
   /** Paint the 2D hall behind the highway; off when the 3D crowd is drawn underneath. */
   background?: boolean
+  /** Notes played by other duelists, drawn as see-through ghosts. */
+  ghosts?: { notes: readonly TimedNote[]; states: readonly NoteState[] }[]
+  /** Not the player's turn: their keys sit dimmed. */
+  idle?: boolean
 }
 
 const GRADE_TEXT: Record<Grade, string> = { perfect: '¡PERFECTO!', good: 'BIEN', miss: 'FALLO' }
@@ -215,7 +219,9 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
     ctx.stroke()
   }
 
-  // Hit line + keys
+  // Hit line + keys, faded while another duelist has the turn
+  ctx.save()
+  if (f.idle) ctx.globalAlpha = 0.55
   for (let i = 0; i < LANE_COUNT; i++) {
     const x = xAt(l, i, 0)
     const r = l.laneW * 0.4
@@ -255,21 +261,59 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
     ctx.fillStyle = '#fff'
     ctx.fillText(LANE_LABELS[i], x, l.hitY + 1)
   }
+  ctx.restore()
 
-  // Notes, far to near so near ones draw on top
+  for (const g of f.ghosts ?? []) drawNotes(ctx, l, f, g.notes, g.states, true)
+  drawNotes(ctx, l, f, f.notes, f.states, false)
+
+  // Judgement popups
+  for (const p of f.popups) {
+    const age = f.time - p.at
+    if (age < 0 || age > 0.6) continue
+    const alpha = 1 - age / 0.6
+    ctx.globalAlpha = alpha
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'alphabetic'
+    const pop = 1 + Math.max(0, 0.12 - age) * 3
+    bigText(
+      ctx,
+      GRADE_TEXT[p.grade],
+      xAt(l, p.lane, 0),
+      l.hitY - l.laneW * 0.75 - age * 60,
+      l.laneW * 0.3 * pop,
+      GRADE_COLOR[p.grade],
+    )
+    ctx.globalAlpha = 1
+  }
+
+  if (f.hud) drawHud(ctx, l, f)
+}
+
+/** Notes, far to near so near ones draw on top. Ghosts are another duelist's part. */
+function drawNotes(
+  ctx: CanvasRenderingContext2D,
+  l: Layout,
+  f: FrameState,
+  notes: readonly TimedNote[],
+  states: readonly NoteState[],
+  ghost: boolean,
+): void {
+  const zOf = (t: number) => (t - f.time) / f.lookahead
+  ctx.save()
+  if (ghost) ctx.globalAlpha = 0.6
   const visible: number[] = []
-  for (let i = 0; i < f.notes.length; i++) {
-    const n = f.notes[i]
+  for (let i = 0; i < notes.length; i++) {
+    const n = notes[i]
     if (n.time - f.time > f.lookahead) break
     if (zOf(n.end) < -0.15) continue
-    const st = f.states[i]
+    const st = states[i]
     if (st === 'hit' || st === 'held') continue
     visible.push(i)
   }
   for (let k = visible.length - 1; k >= 0; k--) {
     const i = visible[k]
-    const n = f.notes[i]
-    const st = f.states[i]
+    const n = notes[i]
+    const st = states[i]
     const color = LANE_COLORS[n.lane]
     const dim = st === 'missed' || st === 'dropped'
 
@@ -324,28 +368,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
       ctx.fill()
     }
   }
-
-  // Judgement popups
-  for (const p of f.popups) {
-    const age = f.time - p.at
-    if (age < 0 || age > 0.6) continue
-    const alpha = 1 - age / 0.6
-    ctx.globalAlpha = alpha
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'alphabetic'
-    const pop = 1 + Math.max(0, 0.12 - age) * 3
-    bigText(
-      ctx,
-      GRADE_TEXT[p.grade],
-      xAt(l, p.lane, 0),
-      l.hitY - l.laneW * 0.75 - age * 60,
-      l.laneW * 0.3 * pop,
-      GRADE_COLOR[p.grade],
-    )
-    ctx.globalAlpha = 1
-  }
-
-  if (f.hud) drawHud(ctx, l, f)
+  ctx.restore()
 }
 
 function drawHud(ctx: CanvasRenderingContext2D, l: Layout, f: FrameState): void {

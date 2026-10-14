@@ -594,17 +594,24 @@ export class CrowdScene {
           f.armR.rotation.z = 0.2
           break
         case 'play': {
-          // Hands working the keys, heads nodding on the beat
-          f.root.position.y = bounce * 0.04
-          f.head.rotation.x = 0.15 + bounce * 0.25 * energy
-          const run = Math.sin(s.time * 15 + (f.role === 'rival' ? 1 : 0))
-          f.armL.rotation.x = -1.15 + run * 0.06
-          f.armR.rotation.x = -1.15 - run * 0.06
-          f.armL.rotation.z = -0.25 + run * 0.08
-          f.armR.rotation.z = 0.25 + run * 0.08
-          // The rival throws a fist up when you drop a note
-          const sinceMiss = s.time - (s.missAt ?? -Infinity)
-          if (f.role === 'rival' && sinceMiss >= 0 && sinceMiss < 0.7) {
+          const mine = f.role === 'you' ? 'you' : 'rival'
+          if (s.turn && s.turn !== mine) {
+            // Waiting out the other's turn: bouncing, one hand jabbing across at them
+            f.root.position.y = bounce * 0.08 * energy
+            f.head.rotation.x = -0.05 + bounce * 0.15
+            f.armL.rotation.set(0, 0, -0.15)
+            f.armR.rotation.set(-(1.45 + bounce * 0.3), 0, 0.1)
+          } else {
+            // Hands working the keys, heads nodding on the beat
+            f.root.position.y = bounce * 0.04
+            f.head.rotation.x = 0.15 + bounce * 0.25 * energy
+            const run = Math.sin(s.time * 15 + (f.role === 'rival' ? 1 : 0))
+            f.armL.rotation.set(-1.15 + run * 0.06, 0, -0.25 + run * 0.08)
+            f.armR.rotation.set(-1.15 - run * 0.06, 0, 0.25 + run * 0.08)
+          }
+          // Each throws a fist up when the other drops a note
+          const sinceMiss = s.time - ((f.role === 'rival' ? s.missAt : s.rivalMissAt) ?? -Infinity)
+          if (sinceMiss >= 0 && sinceMiss < 0.7) {
             f.armR.rotation.set(0, 0, 2.9)
             f.head.rotation.x = -0.25
           }
