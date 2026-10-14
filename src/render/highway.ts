@@ -2,6 +2,7 @@ import { LANE_COLORS, LANE_COUNT, LANE_LABELS } from '../engine/keys'
 import type { Grade, NoteState, Stats, TimedNote } from '../engine/judge'
 import { SABOR_MIN_TO_ACTIVATE } from '../engine/judge'
 import type { TempoMap } from '../engine/tempo'
+import { drawCrowd } from './crowd'
 
 export interface Popup {
   grade: Grade
@@ -119,14 +120,20 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
   const l = layout(w, h)
   const zOf = (t: number) => (t - f.time) / f.lookahead
 
-  // Background: burnt cumbia red with a slowly turning sunburst behind the horizon
+  // Background: a smoky bailanta with a sunburst behind the horizon and a jumping crowd
   const bg = ctx.createLinearGradient(0, 0, 0, h)
-  bg.addColorStop(0, '#a3001f')
-  bg.addColorStop(0.5, '#4a000e')
-  bg.addColorStop(1, '#140204')
+  bg.addColorStop(0, '#6a0014')
+  bg.addColorStop(0.5, '#2a0008')
+  bg.addColorStop(1, '#0c0103')
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, w, h)
   drawSunburst(ctx, l.cx, l.topY, Math.hypot(w, h), f.time, f.stats.saborActive)
+  drawCrowd(ctx, w, h, {
+    time: f.time,
+    beat: f.tempo.timeToBeat(f.time),
+    combo: f.stats.combo,
+    saborActive: f.stats.saborActive,
+  })
 
   // Highway body
   const leftEdge = -LANE_COUNT / 2 - HAND_GAP / 2
@@ -142,8 +149,8 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
     body.addColorStop(0, 'rgba(120, 10, 0, 0.85)')
     body.addColorStop(1, 'rgba(255, 110, 0, 0.55)')
   } else {
-    body.addColorStop(0, 'rgba(20, 2, 4, 0.92)')
-    body.addColorStop(1, 'rgba(48, 6, 12, 0.88)')
+    body.addColorStop(0, 'rgba(20, 2, 4, 0.96)')
+    body.addColorStop(1, 'rgba(48, 6, 12, 0.96)')
   }
   ctx.fillStyle = body
   ctx.fill()
