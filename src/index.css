@@ -1,0 +1,241 @@
+:root {
+  --bg: #0b0018;
+  --panel: rgba(30, 0, 50, 0.85);
+  --text: #f6eaff;
+  --muted: #b9a3cc;
+  --pink: #ff3d7f;
+  --cyan: #00e0ff;
+  --yellow: #ffd400;
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at top, #3a0060 0%, transparent 60%),
+    radial-gradient(ellipse at bottom, #002a40 0%, transparent 60%),
+    var(--bg);
+  overflow: hidden;
+}
+
+#root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  color: #160022;
+  background: linear-gradient(135deg, var(--pink), var(--yellow));
+  border: 0;
+  border-radius: 999px;
+  padding: 0.55em 1.3em;
+  cursor: pointer;
+  transition: transform 0.08s;
+}
+button:hover:not(:disabled) {
+  transform: scale(1.04);
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+button.secondary {
+  background: transparent;
+  color: var(--text);
+  box-shadow: inset 0 0 0 2px var(--cyan);
+}
+
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0.1em 0.4em;
+  border: 2px solid var(--muted);
+  border-radius: 6px;
+  font-family: inherit;
+  font-weight: 700;
+  text-align: center;
+}
+
+.panel {
+  width: min(680px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  overflow: auto;
+  padding: 28px;
+  border-radius: 20px;
+  background: var(--panel);
+  box-shadow: 0 0 60px rgba(255, 61, 127, 0.25);
+  text-align: center;
+}
+
+.logo {
+  font-size: clamp(2.4rem, 8vw, 4rem);
+  margin: 0;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 18px var(--pink);
+}
+.logo span {
+  color: var(--yellow);
+  text-shadow: 0 0 18px var(--yellow);
+}
+.subtitle {
+  color: var(--muted);
+  margin-top: 4px;
+}
+.hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.keys {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 18px 0 8px;
+}
+.keys kbd:nth-child(4) {
+  margin-right: 18px;
+}
+
+.songs {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+  text-align: left;
+}
+.songs li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+.stack {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+input,
+select {
+  font: inherit;
+  background: #1c0030;
+  color: var(--text);
+  border: 1px solid var(--muted);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+.game,
+.editor {
+  position: fixed;
+  inset: 0;
+}
+.game-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 0, 15, 0.7);
+  font-size: 1.2rem;
+}
+
+.results .grade {
+  font-size: 5rem;
+  font-weight: 900;
+  color: var(--yellow);
+  text-shadow: 0 0 24px var(--pink);
+}
+.results h2 {
+  margin: 0;
+}
+.results table {
+  margin: 16px auto;
+  border-spacing: 18px 4px;
+}
+.results td:first-child {
+  text-align: left;
+  color: var(--muted);
+}
+.results td:last-child {
+  text-align: right;
+  font-weight: 700;
+}
+.new-best {
+  color: var(--yellow);
+  font-weight: 700;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--panel);
+  font-size: 0.9rem;
+}
+.toolbar button {
+  padding: 0.35em 0.9em;
+}
+.toolbar label {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.rec {
+  background: #333;
+  color: #fff;
+}
+.rec.on {
+  background: #ff3d3d;
+}
+.editor-canvas {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: block;
+  cursor: crosshair;
+}
+.editor .hint {
+  margin: 4px 12px 8px;
+}
