@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { battleOver, battleRounds, sumStats, type Health } from '../engine/battle'
 import type { DuelResult } from '../engine/duel'
 import type { Stats } from '../engine/judge'
+import { partName, useT } from '../i18n'
 import { melodyById } from '../melodies'
 import type { Settings } from '../settings'
 import { Backdrop } from './Backdrop'
@@ -20,6 +21,7 @@ const RIVAL_NAME = 'EL RAYO'
 
 /** A set-list battle: you and El Rayo alternate, one whole melody per turn. */
 export function Battle({ yours, rivals, youName, settings, onDone, onQuit }: Props) {
+  const t = useT()
   const rounds = useMemo(() => battleRounds(yours, rivals), [yours, rivals])
   const [index, setIndex] = useState(0)
   const [hp, setHp] = useState<Health>({ you: 1, rival: 1 })
@@ -90,14 +92,14 @@ export function Battle({ yours, rivals, youName, settings, onDone, onQuit }: Pro
       <Backdrop />
       <div className="panel round-intro">
         <p className="subtitle">
-          Ronda {index + 1} de {rounds.length}
+          {t.round(index + 1, rounds.length)}
         </p>
-        <h2 className={yourTurn ? 'gold' : 'chrome'}>{yourTurn ? '¡Tu turno!' : `Turno de ${RIVAL_NAME}`}</h2>
+        <h2 className={yourTurn ? 'gold' : 'chrome'}>{yourTurn ? t.yourTurn : t.turnOf(RIVAL_NAME)}</h2>
         <p className="now-playing">
           <b>{melody.title}</b> — {melody.artist}
           <br />
           <span>
-            {melody.part}
+            {partName(t, melody.part)}
             {melody.demo && ' · demo'}
           </span>
         </p>
@@ -107,9 +109,9 @@ export function Battle({ yours, rivals, youName, settings, onDone, onQuit }: Pro
           {setColumn(RIVAL_NAME, rivals, 'rival')}
         </div>
         <div className="row center">
-          <button onClick={onQuit}>Abandonar</button>
+          <button onClick={onQuit}>{t.forfeit}</button>
           <button className="hot" autoFocus onClick={() => setSpec({ owner: round.owner, hp })}>
-            {yourTurn ? '¡Dale!' : 'Escuchar a El Rayo'}
+            {yourTurn ? t.letsGo : t.listenRayo}
           </button>
         </div>
       </div>

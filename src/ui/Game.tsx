@@ -6,6 +6,7 @@ import { SongTiming, timeChart } from '../engine/chart'
 import { AiPlayer, BARS_PER_TURN, damageFor, splitChart, turnIndex, turnOrigin, type DuelResult } from '../engine/duel'
 import { Judge, type JudgeEvent, type Stats, type TimedNote } from '../engine/judge'
 import { LANE_COUNT, laneForCode } from '../engine/keys'
+import { strings, useT } from '../i18n'
 import type { RivalPlayer } from '../engine/remote'
 import type { CrowdScene } from '../render/crowd3d'
 import { drawFrame, type Popup } from '../render/highway'
@@ -47,7 +48,6 @@ interface Props {
 }
 
 const LEAD_IN = 2
-const YOU_NAME = 'VOS'
 const RIVAL_NAME = 'EL RAYO'
 const RIVAL_SKILL = 0.85
 
@@ -57,7 +57,7 @@ export function Game({
   settings,
   duel,
   round,
-  youName = YOU_NAME,
+  youName = strings().you,
   rivalName = RIVAL_NAME,
   rival,
   onJudgeEvent,
@@ -65,6 +65,7 @@ export function Game({
   onFinish,
   onQuit,
 }: Props) {
+  const t = useT()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const crowdRef = useRef<HTMLCanvasElement>(null)
   const sceneRef = useRef<CrowdScene | null>(null)
@@ -242,13 +243,13 @@ export function Game({
       const t = heardTime()
       const warnBeat = turn.start + turnBeats - bpb
       if (turn.youNext && turn.active !== 'you' && beat >= warnBeat) {
-        return { text: '¡PREPARATE!', age: t - timing.tempo.beatToTime(warnBeat), hot: true }
+        return { text: strings().calloutReady, age: t - timing.tempo.beatToTime(warnBeat), hot: true }
       }
       if (!turn.active) return undefined
       const age = t - timing.tempo.beatToTime(turn.start)
       return turn.active === 'you'
-        ? { text: '¡TU TURNO!', age, hot: true }
-        : { text: `TURNO DE ${rivalName}`, age, hot: false }
+        ? { text: strings().calloutYou, age, hot: true }
+        : { text: strings().calloutRival(rivalName), age, hot: false }
     }
 
     const finish = () => {
@@ -400,34 +401,34 @@ export function Game({
     <div className="game">
       <canvas ref={crowdRef} className="crowd-canvas" />
       <canvas ref={canvasRef} className="game-canvas" width={size.w} height={size.h} />
-      {!player && !error && <div className="overlay">Cargando…</div>}
+      {!player && !error && <div className="overlay">{t.loading}</div>}
       {error && (
         <div className="overlay">
-          <p>No se pudo cargar el audio: {error}</p>
-          <button onClick={onQuit}>Volver</button>
+          <p>{t.audioError(error)}</p>
+          <button onClick={onQuit}>{t.back}</button>
         </div>
       )}
       {quitAsk && (
         <div className="overlay quit-ask">
-          <h2 className="chrome">¿Abandonar?</h2>
-          <p className="hint">La batalla sigue sonando para tu rival.</p>
+          <h2 className="chrome">{t.quitAsk}</h2>
+          <p className="hint">{t.quitHint}</p>
           <div className="stack">
             <button className="hot" autoFocus onClick={() => setQuitAsk(false)}>
-              Seguir tocando
+              {t.keepPlaying}
             </button>
-            <button onClick={onQuit}>Abandonar</button>
+            <button onClick={onQuit}>{t.forfeit}</button>
           </div>
         </div>
       )}
       {paused && (
         <div className="overlay">
-          <h2 className="chrome">Pausa</h2>
+          <h2 className="chrome">{t.pause}</h2>
           <div className="stack">
             <button className="hot" autoFocus onClick={resume}>
-              Seguir
+              {t.resume}
             </button>
-            <button onClick={() => setRunId((r) => r + 1)}>Reiniciar</button>
-            <button onClick={onQuit}>Salir</button>
+            <button onClick={() => setRunId((r) => r + 1)}>{t.restart}</button>
+            <button onClick={onQuit}>{t.quit}</button>
           </div>
         </div>
       )}

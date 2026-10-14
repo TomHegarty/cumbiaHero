@@ -1,3 +1,5 @@
+import { strings } from '../i18n'
+
 /**
  * Fighting-game banner across the top of the highway, as in the keyboard-battle
  * clips: both players' names, chrome-framed health bars with a red damage trail,
@@ -57,9 +59,10 @@ export function drawVersus(ctx: CanvasRenderingContext2D, w: number, v: VersusSt
   ctx.textBaseline = 'top'
   ctx.lineWidth = 3
   ctx.strokeStyle = '#000'
-  ctx.strokeText('DUELO DE TECLADISTAS', cx, cy + 28)
+  const title = strings().duelTitle
+  ctx.strokeText(title, cx, cy + 28)
   ctx.fillStyle = '#ffe600'
-  ctx.fillText('DUELO DE TECLADISTAS', cx, cy + 28)
+  ctx.fillText(title, cx, cy + 28)
 
   // Names under the bars
   ctx.font = `14px ${FONT}`

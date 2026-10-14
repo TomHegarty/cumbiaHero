@@ -1,3 +1,4 @@
+import { strings } from '../i18n'
 import { LANE_COLORS, LANE_COUNT, LANE_LABELS } from '../engine/keys'
 import type { Grade, NoteState, Stats, TimedNote } from '../engine/judge'
 import { SABOR_MIN_TO_ACTIVATE } from '../engine/judge'
@@ -34,7 +35,10 @@ export interface FrameState {
   idle?: boolean
 }
 
-const GRADE_TEXT: Record<Grade, string> = { perfect: '¡PERFECTO!', good: 'BIEN', miss: 'FALLO' }
+const gradeText = (g: Grade): string => {
+  const t = strings()
+  return g === 'perfect' ? t.gradePerfect : g === 'good' ? t.gradeGood : t.gradeMiss
+}
 const GRADE_COLOR: Record<Grade, [string, string]> = {
   perfect: ['#fffbe0', '#ff9d00'],
   good: ['#e9fffb', '#00c8ff'],
@@ -277,7 +281,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, f
     const pop = 1 + Math.max(0, 0.12 - age) * 3
     bigText(
       ctx,
-      GRADE_TEXT[p.grade],
+      gradeText(p.grade),
       xAt(l, p.lane, 0),
       l.hitY - l.laneW * 0.75 - age * 60,
       l.laneW * 0.3 * pop,
@@ -376,7 +380,7 @@ function drawHud(ctx: CanvasRenderingContext2D, l: Layout, f: FrameState): void 
   ctx.textBaseline = 'alphabetic'
   ctx.textAlign = 'left'
   bigText(ctx, Math.round(s.score).toLocaleString(), 22, 50, 32, ['#ffffff', '#9aa6b8'])
-  if (s.combo >= 5) bigText(ctx, `¡${s.combo} COMBO!`, 22, 84, 18, ['#fffbe0', '#ff1fa9'])
+  if (s.combo >= 5) bigText(ctx, strings().combo(s.combo), 22, 84, 18, ['#fffbe0', '#ff1fa9'])
 
   ctx.textAlign = 'right'
   bigText(
@@ -407,7 +411,8 @@ function drawHud(ctx: CanvasRenderingContext2D, l: Layout, f: FrameState): void 
   ctx.fillRect(mx, my, mw * s.sabor, mh * 0.4)
   ctx.fillStyle = '#fff'
   ctx.fillRect(mx + mw * SABOR_MIN_TO_ACTIVATE - 1, my - 3, 2, mh + 6)
-  const label = s.saborActive ? '¡SABOR!' : s.sabor >= SABOR_MIN_TO_ACTIVATE ? 'SABOR — ¡ESPACIO!' : 'SABOR'
+  const t = strings()
+  const label = s.saborActive ? t.saborOn : s.sabor >= SABOR_MIN_TO_ACTIVATE ? t.saborReady : t.sabor
   bigText(ctx, label, l.w - 22, my + mh + 22, 14, ['#ffffff', '#ffe600'])
 
   // Progress

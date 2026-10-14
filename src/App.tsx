@@ -3,6 +3,7 @@ import type { Stats } from './engine/judge'
 import { rivalSetList } from './engine/battle'
 import type { DuelResult } from './engine/duel'
 import { MELODIES } from './melodies'
+import { useT } from './i18n'
 import { loadSettings, saveBest, saveSettings, type Settings } from './settings'
 import type { Chart, Song } from './songs/types'
 import { Backdrop } from './ui/Backdrop'
@@ -10,6 +11,7 @@ import { Battle } from './ui/Battle'
 import { Calibration } from './ui/Calibration'
 import { Editor } from './ui/Editor'
 import { Game } from './ui/Game'
+import { LangSwitch } from './ui/LangSwitch'
 import { Menu } from './ui/Menu'
 import { Results } from './ui/Results'
 import { codeFromUrl, withCode } from './net/code'
@@ -30,6 +32,7 @@ type Screen =
   | { name: 'battle-results'; yours: string[]; rivals: string[]; youName: string; stats: Stats; duel: DuelResult }
 
 export default function App() {
+  const t = useT()
   // An invite link opens straight into that lobby's pre-game screen
   const [screen, setScreen] = useState<Screen>(() => {
     const joinCode = codeFromUrl(location.href)
@@ -77,6 +80,7 @@ export default function App() {
   return (
     <>
       {backdrop && <Backdrop />}
+      {backdrop && <LangSwitch />}
       {renderScreen()}
     </>
   )
@@ -180,7 +184,7 @@ export default function App() {
         return (
           <Results
             subtitle={
-              screen.forfeit ? `${screen.rivalName} abandonó la batalla` : `Batalla online contra ${screen.rivalName}`
+              screen.forfeit ? t.forfeited(screen.rivalName) : t.onlineVs(screen.rivalName)
             }
             stats={screen.stats}
             duel={screen.duel}
@@ -204,7 +208,7 @@ export default function App() {
       case 'battle-results':
         return (
           <Results
-            subtitle={`Batalla de melodías · ${screen.yours.length} contra ${screen.rivals.length}`}
+            subtitle={t.battleVs(screen.yours.length, screen.rivals.length)}
             stats={screen.stats}
             duel={screen.duel}
             newBest={false}
