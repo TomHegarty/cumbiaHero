@@ -10,11 +10,9 @@ interface Props {
   onBattle: () => void
   onEditor: (song: Song, chartKey: string) => void
   offsetMs: number
-  volume: number
-  onVolume: (volume: number) => void
 }
 
-export function Menu({ onPlay, onCalibrate, onBattle, onEditor, offsetMs, volume, onVolume }: Props) {
+export function Menu({ onPlay, onCalibrate, onBattle, onEditor, offsetMs }: Props) {
   const t = useT()
   return (
     <div className="panel menu">
@@ -77,17 +75,6 @@ export function Menu({ onPlay, onCalibrate, onBattle, onEditor, offsetMs, volume
       </ul>
 
       <div className="settings">
-        <label className="volume">
-          <span>{t.volume}</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={Math.round(volume * 100)}
-            onChange={(e) => onVolume(Number(e.target.value) / 100)}
-          />
-          <span className="pct">{Math.round(volume * 100)}%</span>
-        </label>
         <button className="secondary" onClick={onCalibrate}>
           {t.calibrate(offsetMs)}
         </button>

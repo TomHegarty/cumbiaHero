@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { audioContext, loadSongTracks, SongPlayer } from '../engine/audio'
+import { audioContext, loadSongTracks, masterOut, SongPlayer } from '../engine/audio'
 import { afterRound, SET_SIZE, type Health, type Side } from '../engine/battle'
 import { CrowdFx } from '../engine/crowdfx'
 import { SongTiming, timeChart } from '../engine/chart'
@@ -84,7 +84,6 @@ export function Game({
   const player = loaded?.song === song ? loaded.player : null
   // A crowd that outlives each song, for cheering the handover between rounds
   const handover = useRef<CrowdFx | null>(null)
-  const volume = useRef(settings.volume)
   const [error, setError] = useState<string | null>(null)
   const [paused, setPaused] = useState(false)
   const [runId, setRunId] = useState(0)
@@ -103,7 +102,6 @@ export function Game({
       .then(({ main, lead }) => {
         if (cancelled) return
         p = new SongPlayer(main, undefined, lead)
-        p.setVolume(volume.current)
         setLoaded({ song, player: p })
       })
       .catch((e: unknown) => setError(String(e)))
@@ -113,12 +111,7 @@ export function Game({
     }
   }, [song])
   useEffect(() => {
-    volume.current = settings.volume
-    player?.setVolume(settings.volume)
-    handover.current?.setLevel(0.5 * settings.volume)
-  }, [player, settings.volume])
-  useEffect(() => {
-    const fx = new CrowdFx(audioContext(), audioContext().destination, 0.5 * volume.current)
+    const fx = new CrowdFx(audioContext(), masterOut(), 0.5)
     handover.current = fx
     return () => {
       handover.current = null

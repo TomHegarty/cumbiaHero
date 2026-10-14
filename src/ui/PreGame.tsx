@@ -9,7 +9,6 @@ import { cleanName, loadName, NAME_MAX, saveName } from '../settings'
 import { useLobby, type OnlineMatch } from './useLobby'
 
 interface Props {
-  volume: number
   /** Opened from an invite link: join this lobby. */
   joinCode?: string | null
   onStart: (picks: string[], name: string) => void
@@ -24,7 +23,7 @@ const PREVIEW_SECONDS = 8
  * you invite with a link) and the melodies you'll bring, in the order you'll
  * play them.
  */
-export function PreGame({ volume, joinCode = null, onStart, onOnlineStart, onBack }: Props) {
+export function PreGame({ joinCode = null, onStart, onOnlineStart, onBack }: Props) {
   const t = useT()
   const [name, setName] = useState(loadName)
   const [picks, setPicks] = useState<string[]>([])
@@ -75,7 +74,6 @@ export function PreGame({ volume, joinCode = null, onStart, onOnlineStart, onBac
     void loadSongTracks(m.song).then(({ main, lead }) => {
       if (request.current !== id) return
       const player = new SongPlayer(main, undefined, lead)
-      player.setVolume(volume)
       // Start a beat before the first note
       const first = Math.min(...m.chart.notes.map((n) => n.b))
       player.play(Math.max(0, new SongTiming(m.song).noteTime(first - 1)))

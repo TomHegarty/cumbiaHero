@@ -7,6 +7,31 @@ export function audioContext(): AudioContext {
   return sharedCtx
 }
 
+let master: GainNode | null = null
+let masterLevel = 1
+
+/** The game's one volume knob: everything played on the shared context passes through it. */
+export function masterOut(): GainNode {
+  if (!master) {
+    const ctx = audioContext()
+    master = ctx.createGain()
+    master.gain.value = masterLevel
+    master.connect(ctx.destination)
+  }
+  return master
+}
+
+/** Sets the master volume (0..1), gliding briefly so a drag doesn't crackle. */
+export function setMasterVolume(v: number): void {
+  masterLevel = v
+  if (master) master.gain.setTargetAtTime(v, master.context.currentTime, 0.02)
+}
+
+/** Where a node on `ctx` should play to: the master volume for the shared context, else straight out. */
+function outputFor(ctx: BaseAudioContext): AudioNode {
+  return ctx === sharedCtx ? masterOut() : ctx.destination
+}
+
 const bufferCache = new Map<string, Promise<AudioBuffer>>()
 
 export function loadAudio(url: string): Promise<AudioBuffer> {
@@ -59,7 +84,7 @@ export class SongPlayer {
     this.lead = lead ?? null
     this.ctx = ctx
     this.gain = ctx.createGain()
-    this.gain.connect(ctx.destination)
+    this.gain.connect(outputFor(ctx))
     this.leadGain = ctx.createGain()
     this.leadGain.connect(this.gain)
   }
@@ -202,7 +227,7 @@ export function click(ctx: AudioContext, when: number, accent = false): void {
   g.gain.setValueAtTime(0.0001, when)
   g.gain.exponentialRampToValueAtTime(0.5, when + 0.002)
   g.gain.exponentialRampToValueAtTime(0.0001, when + 0.06)
-  osc.connect(g).connect(ctx.destination)
+  osc.connect(g).connect(outputFor(ctx))
   osc.start(when)
   osc.stop(when + 0.08)
 }

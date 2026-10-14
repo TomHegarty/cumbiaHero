@@ -24,6 +24,8 @@ const es = {
   editor: 'Editor',
   hitSticker: ['¡EL', 'HIT!'],
   volume: 'Volumen',
+  mute: 'Silenciar',
+  unmute: 'Activar sonido',
   calibrate: (ms: number) => `Calibrar (${ms} ms)`,
 
   // Results
@@ -172,6 +174,8 @@ const en: Strings = {
   editor: 'Editor',
   hitSticker: ['THE', 'HIT!'],
   volume: 'Volume',
+  mute: 'Mute',
+  unmute: 'Unmute',
   calibrate: (ms: number) => `Calibrate (${ms} ms)`,
 
   newBest: 'New high score!',
