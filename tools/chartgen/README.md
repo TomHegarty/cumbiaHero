@@ -49,6 +49,26 @@ python3 -m venv .venv && .venv/bin/pip install -r tools/chartgen/requirements.tx
 Use the same `offset`/`groove` values in the song's `index.ts`, then refine
 anything that feels off in the in-game editor.
 
+### Charting only the lead synth (synthchart.py)
+
+`chartgen.py` mixes the lead riffs with the off-beat comping, so it charts
+notes under the vocals too. `synthchart.py` charts just the heavy lead synth:
+you list the sections where it plays, and which stems carry it there, in a
+JSON file. demucs splits this synth across stems: riffs go to `other.wav`,
+but the stacked chord stabs (Resaka's intro hook, its outro chord) land in
+`vocals.wav`. That stem also carries the singing, so the sung verses are
+kept out of the chart by leaving them off the list.
+
+```sh
+.venv/bin/python tools/chartgen/synthchart.py stems/htdemucs_6s/song \
+  tools/chartgen/resaka.sections.json src/songs/resaka/chart.normal.json \
+  --bpm 86 --offset 0.48 --groove 0 -0.03 -0.07 -0.05
+```
+
+A new note starts on a fresh attack or when the synth's spectrum changes;
+otherwise the note keeps ringing, and anything ringing for a beat or more
+becomes a hold. A hold may carry on under notes for the other hand.
+
 ### Resaka settings
 
 Measured from the remastered 2023 audio: 86.0 BPM, steady through the whole

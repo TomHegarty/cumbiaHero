@@ -1,0 +1,14 @@
+[
+  {"start": 0.0, "end": 13.7, "stems": ["vocals", "other"], "note": "intro hook, stacked synth chords"},
+  {"start": 17.6, "end": 29.7, "stems": ["other"], "note": "lead riff under shouts"},
+  {"start": 52.4, "end": 60.4, "stems": ["other"], "note": "lead riff after verse 1"},
+  {"start": 60.4, "end": 64.5, "stems": ["vocals", "other"], "note": "chord stabs"},
+  {"start": 64.5, "end": 72.6, "stems": ["other"], "note": "lead riff"},
+  {"start": 104.0, "end": 117.6, "stems": ["vocals", "other"], "note": "intro hook reprise"},
+  {"start": 120.4, "end": 132.5, "stems": ["vocals", "other"], "note": "chord stabs into lead riff"},
+  {"start": 140.5, "end": 148.2, "stems": ["other"], "note": "short fill inside verse 3"},
+  {"start": 177.5, "end": 186.7, "stems": ["other"], "note": "lead riff"},
+  {"start": 186.7, "end": 189.6, "stems": ["vocals", "other"], "note": "chord stabs"},
+  {"start": 189.6, "end": 206.5, "stems": ["other"], "note": "lead riff to the end"},
+  {"start": 206.5, "end": 211.5, "stems": ["vocals", "other"], "note": "sustained outro chord"}
+]
