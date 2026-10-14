@@ -4,30 +4,37 @@
     "title": "Se te ve la tanga",
     "artist": "Damas Gratis",
     "part": "Riff de intro",
-    "start": 0,
-    "end": 16,
-    "approx": true,
-    "leadStems": ["other"]
+    "start": 6.5,
+    "end": 29.5,
+    "approx": false,
+    "leadStems": [
+      "other"
+    ]
   },
   {
     "id": "no-te-creas-tan-importante",
     "title": "No te creas tan importante",
     "artist": "Damas Gratis",
-    "part": "Riff de intro",
-    "start": 0,
-    "end": 16,
-    "approx": true,
-    "leadStems": ["other"]
+    "part": "Solo de teclado",
+    "start": 130.0,
+    "end": 148.0,
+    "approx": false,
+    "leadStems": [
+      "other"
+    ]
   },
   {
     "id": "sos-boton",
     "title": "Sos botón",
     "artist": "Flor de Piedra",
     "part": "Riff de intro",
-    "start": 0,
-    "end": 16,
-    "approx": true,
-    "leadStems": ["other"]
+    "start": 0.8,
+    "end": 26.0,
+    "approx": false,
+    "leadStems": [
+      "other",
+      "piano"
+    ]
   },
   {
     "id": "cumbia-de-los-trapos",
@@ -37,17 +44,21 @@
     "start": 0,
     "end": 16,
     "approx": true,
-    "leadStems": ["other"]
+    "leadStems": [
+      "other"
+    ]
   },
   {
     "id": "llegamos-los-pibes-chorros",
     "title": "Llegamos los Pibes Chorros",
     "artist": "Pibes Chorros",
     "part": "Riff de intro",
-    "start": 0,
-    "end": 16,
-    "approx": true,
-    "leadStems": ["other"]
+    "start": 17.5,
+    "end": 32.5,
+    "approx": false,
+    "leadStems": [
+      "other"
+    ]
   },
   {
     "id": "para-la-gilada",
@@ -57,7 +68,9 @@
     "start": 0,
     "end": 16,
     "approx": true,
-    "leadStems": ["other"]
+    "leadStems": [
+      "other"
+    ]
   },
   {
     "id": "ritmo-sustancia",
@@ -67,7 +80,9 @@
     "start": 0,
     "end": 16,
     "approx": true,
-    "leadStems": ["other"]
+    "leadStems": [
+      "other"
+    ]
   },
   {
     "id": "bailan-rochas-y-chetas",
@@ -77,7 +92,9 @@
     "start": 0,
     "end": 16,
     "approx": true,
-    "leadStems": ["other"]
+    "leadStems": [
+      "other"
+    ]
   },
   {
     "id": "tirate-un-paso",
@@ -87,16 +104,20 @@
     "start": 0,
     "end": 16,
     "approx": true,
-    "leadStems": ["other"]
+    "leadStems": [
+      "other"
+    ]
   },
   {
     "id": "la-resaka",
     "title": "La Resaka",
     "artist": "Supermerk2",
-    "part": "Gancho de intro",
-    "start": 0,
-    "end": 13.7,
+    "part": "Riff principal",
+    "start": 17.6,
+    "end": 29.7,
     "approx": false,
-    "leadStems": ["vocals", "other"]
+    "leadStems": [
+      "other"
+    ]
   }
 ]

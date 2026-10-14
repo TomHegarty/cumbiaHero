@@ -75,11 +75,28 @@ export interface CrowdState {
   rivalMissAt?: number
   /** Whose turn it is in a duel; the other keyboardist steps back and taunts. */
   turn?: 'you' | 'rival'
+  /** Song time of the last big cheer (a player stepping up); the room goes wild for a couple of seconds. */
+  hypeAt?: number
+}
+
+/** How long a big cheer lifts the room, in seconds. */
+export const HYPE_SECONDS = 2.4
+
+/** 1 right as the crowd cheers, fading to 0 over HYPE_SECONDS. */
+export function hypeLevel(s: CrowdState): number {
+  const since = s.time - (s.hypeAt ?? -Infinity)
+  return since >= 0 && since < HYPE_SECONDS ? 1 - since / HYPE_SECONDS : 0
+}
+
+/** How hard the crowd is going: rises with the combo, maxes under Sabor or a cheer. */
+export function crowdEnergy(s: CrowdState): number {
+  const base = s.saborActive ? 1.25 : 0.35 + Math.min(1, s.combo / 40) * 0.65
+  return Math.max(base, 0.6 + hypeLevel(s) * 0.8)
 }
 
 export function drawCrowd(ctx: CanvasRenderingContext2D, w: number, h: number, s: CrowdState): void {
   // Energy rises with the combo and maxes out under Sabor
-  const energy = s.saborActive ? 1.25 : 0.35 + Math.min(1, s.combo / 40) * 0.65
+  const energy = crowdEnergy(s)
   const pulse = Math.pow(1 - (((s.beat % 1) + 1) % 1), 3)
 
   ctx.save()

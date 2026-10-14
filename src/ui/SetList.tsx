@@ -71,7 +71,7 @@ export function SetList({ volume, onStart, onBack }: Props) {
                   <span className="title">{m.title}</span>
                   <span className="artist">{m.artist}</span>
                   <span className="meta">
-                    {m.part} · {m.song.tempo[0].bpm} BPM · {m.chart.notes.length} notas
+                    {m.part} · {Math.round(m.song.tempo[0].bpm)} BPM · {m.chart.notes.length} notas
                   </span>
                 </span>
                 {m.demo && (

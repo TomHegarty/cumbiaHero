@@ -8,7 +8,7 @@
  * highway.
  */
 import * as THREE from 'three'
-import type { CrowdState } from './crowd'
+import { crowdEnergy, hypeLevel, type CrowdState } from './crowd'
 
 const SKIN = ['#f1c9a5', '#dcab82', '#c08a5e', '#9a6744', '#7a4f31']
 const HAIR = ['#120c08', '#1e130b', '#3a2414', '#d9c08a']
@@ -539,7 +539,8 @@ export class CrowdScene {
   }
 
   render(s: CrowdState): void {
-    const energy = s.saborActive ? 1.25 : 0.35 + Math.min(1, s.combo / 40) * 0.65
+    const energy = crowdEnergy(s)
+    const hype = hypeLevel(s)
     const frac = ((s.beat % 1) + 1) % 1
     const pulse = Math.pow(1 - frac, 3)
 
@@ -622,6 +623,14 @@ export class CrowdScene {
           f.armL.rotation.z = -(2.5 + wave * 0.2) * up
           f.armR.rotation.x = -(1.45 + bounce * 0.25)
           break
+      }
+      // A big cheer: everyone leaps higher, and empty hands go straight up
+      if (hype > 0 && !f.role) {
+        f.root.position.y += bounce * 0.35 * hype
+        if (f.pose === 'clap' || f.pose === 'pump' || f.pose === 'point' || f.pose === 'phone') {
+          f.armL.rotation.set(0, 0, -(2.8 + wave * 0.2) * Math.min(1, hype * 2))
+          f.armR.rotation.set(0, 0, (2.8 - wave * 0.2) * Math.min(1, hype * 2))
+        }
       }
     }
 

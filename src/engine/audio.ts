@@ -92,6 +92,16 @@ export class SongPlayer {
     this.onEnded = fn
   }
 
+  /** Node that sound effects can join to share the song's volume. */
+  get output(): AudioNode {
+    return this.gain
+  }
+
+  /** AudioContext time at which song-time `t` plays, for scheduling effects in sync (while playing). */
+  contextTime(t: number): number {
+    return this.startCtxTime + t / this.rate
+  }
+
   /** Current position in song seconds (may be negative during a lead-in). */
   get currentTime(): number {
     if (!this.playing) return this.pausedAt

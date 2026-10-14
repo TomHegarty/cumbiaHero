@@ -97,8 +97,8 @@ def suggest_sections(stems: Path, lead_stems: list[str], length: float, count: i
     return picks
 
 
-def measure_tempo(stems: Path, start: float, end: float) -> tuple[float, float]:
-    """BPM and the time of a downbeat near `start`, from the drums and bass."""
+def measure_tempo(stems: Path, lead_stems: list[str], start: float, end: float) -> tuple[float, float]:
+    """BPM and the time of a downbeat near `start`, from the drums, bass and lead."""
     a = max(0.0, start - 4)
     rhythm = mono(stems, ["drums", "bass"])[int(a * SR) : int((end + 4) * SR)]
     env = librosa.onset.onset_strength(y=rhythm, sr=SR, hop_length=HOP)
@@ -122,7 +122,22 @@ def measure_tempo(stems: Path, start: float, end: float) -> tuple[float, float]:
             if score > best[0]:
                 best = (score, bpm, start + phase)
     _, bpm, t0 = best
-    bpm = round(float(bpm), 1)
+    # The onset envelope peaks a little after each attack, so fine-tune the grid against the
+    # attacks themselves: the drum and lead onsets that land on the 8th-note grid
+    attacks = np.concatenate([
+        librosa.onset.onset_detect(y=mono(stems, names)[int(start * SR) : int(end * SR)], sr=SR, hop_length=HOP, units="time") + start
+        for names in (["drums"], lead_stems)
+    ])
+    fine = (-1.0, bpm, t0)
+    for b in np.arange(bpm - 0.3, bpm + 0.31, 0.05):
+        half = 30 / b
+        for shift in np.arange(-0.08, 0.081, 0.004):
+            x = (attacks - (t0 + shift)) / half
+            score = float((np.abs(x - np.round(x)) * half < 0.025).mean())
+            if score > fine[0]:
+                fine = (score, b, t0 + shift)
+    _, bpm, t0 = fine
+    bpm = round(float(bpm), 2)
     spb = 60 / bpm
     # Kick and bass both play every beat, but the bass leans on 1 and 3: pick the
     # stronger pair. Telling 1 from 3 isn't possible from onsets and doesn't matter
@@ -140,15 +155,13 @@ def measure_tempo(stems: Path, start: float, end: float) -> tuple[float, float]:
     return bpm, float(downbeat)
 
 
-def measure_groove(stems: Path, bpm: float, beat0: float, start: float, end: float) -> list[float]:
+def measure_groove(stems: Path, lead_stems: list[str], bpm: float, beat0: float, start: float, end: float) -> list[float]:
     """Median push of each 16th position (1, e, &, a) from a straight grid, in beats.
 
-    Measured on the percussion and comping around the section (the feel holds
-    for the whole song, and a longer stretch gives steadier medians).
+    Measured on the lead synth in the section: that's the feel the player has to hit.
     """
-    a, b = max(0.0, start - 30), end + 30
-    y = mono(stems, ["drums", "guitar", "piano"])[int(a * SR) : int(b * SR)]
-    onsets = librosa.onset.onset_detect(y=y, sr=SR, hop_length=HOP, units="time") + a
+    y = mono(stems, lead_stems)[int(start * SR) : int(end * SR)]
+    onsets = librosa.onset.onset_detect(y=y, sr=SR, hop_length=HOP, units="time") + start
     spb = 60 / bpm
     devs: list[list[float]] = [[], [], [], []]
     for t in onsets:
@@ -157,10 +170,10 @@ def measure_groove(stems: Path, bpm: float, beat0: float, start: float, end: flo
         d = (pos - slot) / 4
         if abs(d) <= 0.11:
             devs[slot % 4].append(d)
-    base = np.median(devs[0]) if len(devs[0]) >= 4 else 0.0
+    base = np.median(devs[0]) if len(devs[0]) >= 3 else 0.0
     groove = [0.0]
     for d in devs[1:]:
-        g = float(np.median(d) - base) if len(d) >= 4 else 0.0
+        g = float(np.median(d) - base) if len(d) >= 3 else 0.0
         groove.append(round(float(np.clip(g, -0.11, 0.11)), 2))
     return groove
 
@@ -218,9 +231,11 @@ def build(entry: dict, args: argparse.Namespace) -> None:
     if args.bpm and args.offset is not None:
         bpm, beat0 = args.bpm, args.offset
     else:
-        bpm, beat0 = measure_tempo(stems, start, end)
+        bpm, beat0 = measure_tempo(stems, lead_stems, start, end)
     spb = 60 / bpm
-    groove = args.groove or measure_groove(stems, bpm, beat0, start, end)
+    # Beat 0 is the first downbeat in the section; a pickup before it gets negative beats
+    beat0 = float(beat0 + np.ceil((start - 0.15 - beat0) / (4 * spb)) * 4 * spb)
+    groove = args.groove or measure_groove(stems, lead_stems, bpm, beat0, start, end)
 
     clip_start = max(0.0, beat0 - 4 * spb)
     clip_end = end + 1.0
@@ -234,7 +249,7 @@ def build(entry: dict, args: argparse.Namespace) -> None:
         grid,
         min_gap=args.min_gap,
     )
-    notes = [n for n in notes if n["b"] >= -1]
+    notes = [n for n in notes if n["b"] >= -4]
     CLIPS.mkdir(parents=True, exist_ok=True)
     clip = {
         "bpm": bpm,

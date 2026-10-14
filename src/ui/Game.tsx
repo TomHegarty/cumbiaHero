@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { audioContext, loadSongTracks, SongPlayer } from '../engine/audio'
 import { afterRound, SET_SIZE, type Health, type Side } from '../engine/battle'
+import { CrowdFx } from '../engine/crowdfx'
 import { SongTiming, timeChart } from '../engine/chart'
 import { AiPlayer, BARS_PER_TURN, damageFor, splitChart, turnIndex, turnOrigin, type DuelResult } from '../engine/duel'
 import { Judge, type Stats } from '../engine/judge'
@@ -143,7 +144,9 @@ export function Game({ song, chart, settings, duel, round, onFinish, onQuit }: P
       youDealt += damageFor(e.grade)
       popup(e.grade, e.lane)
     })
+    let aiCombo = 0
     ai.onJudge((e) => {
+      aiCombo = e.grade === 'miss' ? 0 : aiCombo + 1
       leadFollows(e.grade)
       if (e.grade === 'miss') rivalMissAt = heardTime()
       rivalDealt += damageFor(e.grade)
@@ -165,6 +168,38 @@ export function Game({ song, chart, settings, duel, round, onFinish, onQuit }: P
       return { active, start, youNext: (i === -1 || (i >= 0 && i % 2 === 1)) && start + turnBeats <= lastBeat }
     }
     const endTime = Math.min(player.duration, Math.max(lastNote + 3, 10))
+
+    // The crowd: a big cheer as each player starts their turn, then claps on the beat while the room is hot
+    const fx = versus ? new CrowdFx(actx, player.output) : null
+    const cheerBeats: number[] = []
+    if (versus) {
+      if (round) cheerBeats.push(origin)
+      else for (let b = origin; b <= lastBeat; b += turnBeats) cheerBeats.push(b)
+    }
+    let cheerCursor = 0
+    let nextClap = -Infinity
+    let hypeAt = -Infinity
+    /** Schedules crowd sounds due in the next moment, on the audio clock so they land in time. */
+    const scheduleCrowd = (t: number, turn: ReturnType<typeof turnAt>) => {
+      if (!fx) return
+      const ahead = t + 0.15
+      while (cheerCursor < cheerBeats.length && timing.tempo.beatToTime(cheerBeats[cheerCursor]) <= ahead) {
+        const at = timing.tempo.beatToTime(cheerBeats[cheerCursor++])
+        // Skip cheers already behind us (after a resume)
+        if (at < t - 0.1) continue
+        fx.cheer(player.contextTime(at))
+        hypeAt = at
+      }
+      const combo = turn.active === 'rival' ? aiCombo : judge.stats.combo
+      const beatNow = timing.tempo.timeToBeat(t)
+      nextClap = Math.max(nextClap, Math.ceil(beatNow))
+      while (timing.tempo.beatToTime(nextClap) <= ahead) {
+        const at = timing.tempo.beatToTime(nextClap)
+        const hot = combo >= 8 || at - hypeAt < (60 / song.tempo[0].bpm) * bpb * 2
+        if (turn.active && hot) fx.clap(player.contextTime(at), Math.min(1, 0.45 + combo / 30))
+        nextClap++
+      }
+    }
 
     /** Announce each turn as it starts, and warn you a bar before yours. */
     const callout = (beat: number, turn: ReturnType<typeof turnAt>) => {
@@ -235,6 +270,7 @@ export function Game({ song, chart, settings, duel, round, onFinish, onQuit }: P
       for (let i = 0; i < LANE_COUNT; i++) shown[i] = pressed[i] || aiPressed[i]
       const beat = timing.tempo.timeToBeat(t)
       const turn = turnAt(beat)
+      if (player.playing) scheduleCrowd(t, turn)
       const dpr = window.devicePixelRatio || 1
       const scene = sceneRef.current
       if (scene) {
@@ -244,11 +280,12 @@ export function Game({ song, chart, settings, duel, round, onFinish, onQuit }: P
         scene.render({
           time: t,
           beat,
-          combo: judge.stats.combo,
+          combo: turn.active === 'rival' ? aiCombo : judge.stats.combo,
           saborActive: judge.stats.saborActive,
           missAt,
           rivalMissAt,
           turn: versus ? (turn.active ?? undefined) : undefined,
+          hypeAt,
         })
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -301,6 +338,7 @@ export function Game({ song, chart, settings, duel, round, onFinish, onQuit }: P
       window.removeEventListener('blur', onBlur)
       player.setOnEnded(null)
       player.pause()
+      fx?.dispose()
     }
   }, [player, song, chart, settings, duel, round, onFinish, runId])
 
