@@ -10,14 +10,17 @@ songs-in/<id>.mp3 and:
 4. splits the clip into a lead track (the stems that carry the synth, listed
    per song as `leadStems`) and a backing track (everything else: drums, bass,
    guitar, piano, shouts), written as MP3s to public/melodies/<id>/
-5. charts the lead synth with tools/chartgen/synthchart.py and writes the
-   clip's timing and chart to src/melodies/clips/<id>.json
+5. charts the lead synth from its own notes (tools/melodies/melody_chart.py:
+   basic-pitch transcription, top voice, a lane per pitch), lines the beat
+   grid up with where the synth actually plays, and writes the clip's timing
+   and chart to src/melodies/clips/<id>.json
 
 The game picks the clip up on the next build; the melody stops being a demo.
 
     python tools/melodies/build_melody.py se-te-ve-la-tanga --start 0.5 --end 17
     python tools/melodies/build_melody.py se-te-ve-la-tanga --find   # suggest sections
     python tools/melodies/build_melody.py --all                      # every song in songs-in/
+    python tools/melodies/build_melody.py --all --chart-only         # re-chart built clips only
 """
 
 from __future__ import annotations
@@ -34,9 +37,10 @@ import soundfile as sf
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools" / "chartgen"))
+sys.path.insert(0, str(ROOT / "tools" / "melodies"))
 
 from chartgen import HOP, SR, Grid  # noqa: E402
-from synthchart import chart_synth  # noqa: E402
+from melody_chart import chart_melody, fit_grid, synth_notes  # noqa: E402
 
 LIBRARY = ROOT / "src" / "melodies" / "library.json"
 CLIPS = ROOT / "src" / "melodies" / "clips"
@@ -211,8 +215,32 @@ def write_clip(stems: Path, song_id: str, lead_stems: list[str], a: float, b: fl
     return clip_dir
 
 
+def write_chart(song_id: str, clip_dir: Path, lead_stems: list[str], clip: dict, min_gap: int) -> list[dict]:
+    """Chart the clip's lead synth and save the clip's timing and chart."""
+    y = sum(librosa.load(clip_dir / f"{name}.wav", sr=SR, mono=True)[0] for name in lead_stems)
+    src = clip["source"]
+    a, b = src["start"] - src["clipStart"], src["end"] - src["clipStart"]
+    # Line the grid up with the synth: it can sit behind the drums or swing harder than them
+    heard = [n for n in synth_notes(y) if a - 0.1 <= n.start < b]
+    clip["offset"], clip["groove"] = fit_grid(heard, clip["bpm"], clip["offset"], clip["groove"])
+    grid = Grid(clip["bpm"], clip["offset"], clip["groove"])
+    notes, _ = chart_melody(y, grid, max(0.0, a - 0.1), b, min_gap=min_gap)
+    notes = [n for n in notes if n["b"] >= -4]
+    clip["chart"] = {"name": "Normal", "source": "generated", "notes": notes}
+    CLIPS.mkdir(parents=True, exist_ok=True)
+    (CLIPS / f"{song_id}.json").write_text(json.dumps(clip, separators=(",", ":"), ensure_ascii=False) + "\n")
+    return notes
+
+
 def build(entry: dict, args: argparse.Namespace) -> None:
     song_id = entry["id"]
+    if args.chart_only:
+        # Re-chart a built clip from its cut stems, keeping its audio and tempo
+        clip = json.loads((CLIPS / f"{song_id}.json").read_text())
+        clip.pop("chart", None)
+        notes = write_chart(song_id, STEMS / "clips" / song_id, args.lead_stems or entry["leadStems"], clip, args.min_gap)
+        print(f"{song_id}: {len(notes)} notes ({sum('d' in n for n in notes)} holds), grid {clip['offset']}s {clip['groove']}")
+        return
     song = find_song(song_id)
     if not song:
         raise SystemExit(f"put the recording at songs-in/{song_id}.mp3")
@@ -242,24 +270,14 @@ def build(entry: dict, args: argparse.Namespace) -> None:
     clip_dir = write_clip(stems, song_id, lead_stems, clip_start, clip_end)
 
     offset = beat0 - clip_start
-    grid = Grid(bpm, offset, groove)
-    notes, _ = chart_synth(
-        clip_dir,
-        [{"start": max(0.0, start - clip_start - 0.1), "end": end - clip_start, "stems": lead_stems}],
-        grid,
-        min_gap=args.min_gap,
-    )
-    notes = [n for n in notes if n["b"] >= -4]
-    CLIPS.mkdir(parents=True, exist_ok=True)
     clip = {
         "bpm": bpm,
         "offset": round(offset, 3),
         "groove": groove,
         "beatsPerBar": 4,
         "source": {"start": start, "end": end, "clipStart": round(clip_start, 3)},
-        "chart": {"name": "Normal", "source": "generated", "notes": notes},
     }
-    (CLIPS / f"{song_id}.json").write_text(json.dumps(clip, separators=(",", ":"), ensure_ascii=False) + "\n")
+    notes = write_chart(song_id, clip_dir, lead_stems, clip, args.min_gap)
 
     # Remember a section given on the command line
     if args.start is not None or args.end is not None:
@@ -271,7 +289,7 @@ def build(entry: dict, args: argparse.Namespace) -> None:
 
     holds = sum("d" in n for n in notes)
     print(
-        f"{song_id}: {bpm} BPM · beat 1 at {beat0:.2f}s · groove {groove} · "
+        f"{song_id}: {bpm} BPM · beat 1 at {beat0:.2f}s · groove {clip['groove']} · "
         f"{len(notes)} notes ({holds} holds) · clip {clip_start:.1f}-{clip_end:.1f}s"
     )
 
@@ -287,12 +305,13 @@ def main() -> None:
     ap.add_argument("--bpm", type=float, help="override the measured tempo (needs --offset)")
     ap.add_argument("--offset", type=float, help="time (s) of beat 1 in the full song")
     ap.add_argument("--groove", type=float, nargs=4, help="per-16th offsets in beats")
-    ap.add_argument("--min-gap", type=int, default=2, help="min 16ths between notes (1 = harder)")
+    ap.add_argument("--min-gap", type=int, default=1, help="min 16ths between notes (2 = easier, eighths only)")
+    ap.add_argument("--chart-only", action="store_true", help="re-chart an already built clip, keeping its audio")
     args = ap.parse_args()
 
     library = json.loads(LIBRARY.read_text())
     if args.all:
-        todo = [e for e in library if find_song(e["id"])]
+        todo = [e for e in library if (CLIPS / f"{e['id']}.json").exists()] if args.chart_only else [e for e in library if find_song(e["id"])]
         if not todo:
             raise SystemExit("no songs in songs-in/; name them by library id, e.g. songs-in/se-te-ve-la-tanga.mp3")
         for e in todo:
