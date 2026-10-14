@@ -1,4 +1,5 @@
 import { LANE_COLORS, LANE_LABELS } from '../engine/keys'
+import { useT } from '../i18n'
 import { loadBest } from '../settings'
 import { SONGS } from '../songs'
 import type { Song } from '../songs/types'
@@ -14,13 +15,14 @@ interface Props {
 }
 
 export function Menu({ onPlay, onCalibrate, onBattle, onEditor, offsetMs, volume, onVolume }: Props) {
+  const t = useT()
   return (
     <div className="panel menu">
-      <h1 className="logo">
+      <h1 className="logo" data-tag={t.tag}>
         <span className="word">Cumbia</span>
         <span className="word gold">Hero</span>
       </h1>
-      <div className="ribbon">¡Tocá el teclado, seguí la cumbia!</div>
+      <div className="ribbon">{t.ribbon}</div>
 
       <div className="keys">
         {LANE_LABELS.map((k, i) => (
@@ -30,17 +32,16 @@ export function Menu({ onPlay, onCalibrate, onBattle, onEditor, offsetMs, volume
         ))}
       </div>
       <p className="hint">
-        Hit notes as they cross the line · hold long notes · <kbd>Space</kbd> unleashes Sabor ·{' '}
-        <kbd>Esc</kbd> pauses
+        {t.hintHit} · {t.hintHold} · <kbd>{t.space}</kbd> {t.hintSabor} · <kbd>Esc</kbd> {t.hintPause}
       </p>
 
       <button className="hot battle-cta" onClick={onBattle}>
-        ¡A batallar!
-        <small>Armá tu lista de 3 y elegí tu rival</small>
+        {t.battle}
+        <small>{t.battleSub}</small>
       </button>
 
-      <h3 className="section">Práctica</h3>
-      <p className="hint">Una canción entera, turnándote con El Rayo cada 4 compases.</p>
+      <h3 className="section">{t.practice}</h3>
+      <p className="hint">{t.practiceHint}</p>
       <ul className="songs">
         {SONGS.map((song, i) =>
           Object.entries(song.charts).map(([key, chart]) => (
@@ -50,24 +51,24 @@ export function Menu({ onPlay, onCalibrate, onBattle, onEditor, offsetMs, volume
                 <div className="title">{song.title}</div>
                 <div className="artist">{song.artist}</div>
                 <div className="meta">
-                  {chart.name} · {song.tempo[0].bpm} BPM · {chart.notes.length} notas
-                  {chart.source === 'generated' && ' · auto-charted'} · récord{' '}
+                  {chart.name} · {song.tempo[0].bpm} BPM · {t.notes(chart.notes.length)}
+                  {chart.source === 'generated' && ` · ${t.autoCharted}`} · {t.best}{' '}
                   {Math.round(loadBest(song.id, key)).toLocaleString()}
                 </div>
               </div>
               <div className="row">
                 <button className="hot" onClick={() => onPlay(song, key)} disabled={chart.notes.length === 0}>
-                  ¡Tocar!
+                  {t.play}
                 </button>
                 <button className="secondary" onClick={() => onEditor(song, key)}>
-                  Editor
+                  {t.editor}
                 </button>
               </div>
               {i === 0 && (
                 <div className="sticker">
-                  ¡EL
+                  {t.hitSticker[0]}
                   <br />
-                  HIT!
+                  {t.hitSticker[1]}
                 </div>
               )}
             </li>
@@ -77,7 +78,7 @@ export function Menu({ onPlay, onCalibrate, onBattle, onEditor, offsetMs, volume
 
       <div className="settings">
         <label className="volume">
-          <span>Volumen</span>
+          <span>{t.volume}</span>
           <input
             type="range"
             min={0}
@@ -88,7 +89,7 @@ export function Menu({ onPlay, onCalibrate, onBattle, onEditor, offsetMs, volume
           <span className="pct">{Math.round(volume * 100)}%</span>
         </label>
         <button className="secondary" onClick={onCalibrate}>
-          Calibrar ({offsetMs} ms)
+          {t.calibrate(offsetMs)}
         </button>
       </div>
     </div>

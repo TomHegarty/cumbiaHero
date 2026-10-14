@@ -3,6 +3,7 @@ import { afterRound, battleOver, sumStats, type Health, type Side } from '../eng
 import { damageFor, type DuelResult } from '../engine/duel'
 import type { Grade, JudgeEvent, Stats, TimedNote } from '../engine/judge'
 import { RemotePlayer } from '../engine/remote'
+import { partName, useT } from '../i18n'
 import { melodyById } from '../melodies'
 import { FORFEIT_MS, ROUND_INTRO_MS, type Lobby, type RoundResult, type Seat, type WireHit } from '../net/types'
 import type { Settings } from '../settings'
@@ -44,6 +45,7 @@ const statsOf = (r: RoundResult): Stats => ({
  * reported result, so both screens agree on it.
  */
 export function OnlineBattle({ match, youName, settings, onDone, onQuit }: Props) {
+  const t = useT()
   const { handle } = match
   const [lobby, setLobby] = useState<Lobby>(match.lobby)
   const [now, setNow] = useState(() => match.serverNow())
@@ -243,14 +245,14 @@ export function OnlineBattle({ match, youName, settings, onDone, onQuit }: Props
       <Backdrop />
       <div className="panel round-intro">
         <p className="subtitle">
-          Ronda {index + 1} de {order.length} · online
+          {t.round(index + 1, order.length)} · {t.online}
         </p>
-        <h2 className={yours ? 'gold' : 'chrome'}>{yours ? '¡Tu turno!' : `Turno de ${rivalName}`}</h2>
+        <h2 className={yours ? 'gold' : 'chrome'}>{yours ? t.yourTurn : t.turnOf(rivalName)}</h2>
         <p className="now-playing">
           <b>{melody.title}</b> — {melody.artist}
           <br />
           <span>
-            {melody.part}
+            {partName(t, melody.part)}
             {melody.demo && ' · demo'}
           </span>
         </p>
@@ -260,10 +262,10 @@ export function OnlineBattle({ match, youName, settings, onDone, onQuit }: Props
           {setColumn(rivalName, 'rival')}
         </div>
         <p className="round-clock" role="status">
-          {waiting ? 'Esperando el resultado…' : rivalGone ? `${rivalName} se desconectó…` : secs > 0 ? `Arranca en ${secs}` : '¡Ya!'}
+          {waiting ? t.waitingResult : rivalGone ? t.rivalDropped(rivalName) : secs > 0 ? t.startsIn(secs) : t.go}
         </p>
         <div className="row center">
-          <button onClick={onQuit}>Abandonar</button>
+          <button onClick={onQuit}>{t.forfeit}</button>
         </div>
       </div>
     </>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { audioContext, click } from '../engine/audio'
+import { useT } from '../i18n'
 
 interface Props {
   initialMs: number
@@ -19,6 +20,7 @@ function median(xs: number[]): number {
 
 /** Plays a click track and measures how late the player taps relative to it. */
 export function Calibration({ initialMs, onSave, onBack }: Props) {
+  const t = useT()
   const [running, setRunning] = useState(false)
   const [offsets, setOffsets] = useState<number[]>([])
   const [manual, setManual] = useState(initialMs)
@@ -54,11 +56,8 @@ export function Calibration({ initialMs, onSave, onBack }: Props) {
 
   return (
     <div className="panel">
-      <h2 className="chrome">Calibración</h2>
-      <p>
-        Press <kbd>Start</kbd>, then tap <kbd>Space</kbd> on every click you hear. The first {WARMUP}{' '}
-        clicks are a warm-up.
-      </p>
+      <h2 className="chrome">{t.calibration}</h2>
+      <p>{t.calIntro(WARMUP)}</p>
       <div className="stack">
         <button
           disabled={running}
@@ -67,21 +66,21 @@ export function Calibration({ initialMs, onSave, onBack }: Props) {
             setRunning(true)
           }}
         >
-          {running ? 'Escuchando…' : 'Start'}
+          {running ? t.listening : t.start}
         </button>
       </div>
       <p>
-        Taps: {offsets.length}
+        {t.taps(offsets.length)}
         {measured !== null && (
           <>
             {' '}
-            · measured offset <strong>{measured} ms</strong>{' '}
-            <button onClick={() => setManual(measured)}>Use it</button>
+            · {t.measured} <strong>{measured} ms</strong>{' '}
+            <button onClick={() => setManual(measured)}>{t.useIt}</button>
           </>
         )}
       </p>
       <label className="row">
-        Offset (ms):
+        {t.offset}
         <input
           type="number"
           value={manual}
@@ -89,10 +88,10 @@ export function Calibration({ initialMs, onSave, onBack }: Props) {
           onChange={(e) => setManual(Number(e.target.value) || 0)}
         />
       </label>
-      <p className="hint">Positive if you tend to hit late. Notes are judged against audio time minus this.</p>
+      <p className="hint">{t.offsetHint}</p>
       <div className="stack">
-        <button onClick={() => onSave(manual)}>Guardar</button>
-        <button onClick={onBack}>Volver</button>
+        <button onClick={() => onSave(manual)}>{t.save}</button>
+        <button onClick={onBack}>{t.back}</button>
       </div>
     </div>
   )

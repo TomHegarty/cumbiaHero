@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadAudio, SongPlayer } from '../engine/audio'
 import { SongTiming } from '../engine/chart'
 import { LANE_COLORS, LANE_COUNT, LANE_LABELS, laneForCode } from '../engine/keys'
+import { strings, useT } from '../i18n'
 import type { Chart, ChartNote, Song } from '../songs/types'
 import { useCanvasSize } from './useCanvasSize'
 
@@ -30,6 +31,7 @@ function sortNotes(notes: ChartNote[]): ChartNote[] {
  * or press Record and play along on the home row.
  */
 export function Editor({ song, chart, onTest, onBack }: Props) {
+  const t = useT()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const size = useCanvasSize(canvasRef)
   const timing = useMemo(() => new SongTiming(song), [song])
@@ -198,7 +200,7 @@ export function Editor({ song, chart, onTest, onBack }: Props) {
       for (let i = 0; i < LANE_COUNT; i++) ctx.fillText(LANE_LABELS[i], x0 + (i + 0.5) * laneW, h - 10)
       ctx.textAlign = 'left'
       ctx.fillText(
-        `bar ${Math.floor(now / song.beatsPerBar) + 1} · beat ${(now % song.beatsPerBar + 1).toFixed(2)}`,
+        strings().barBeat(Math.floor(now / song.beatsPerBar) + 1, (now % song.beatsPerBar + 1).toFixed(2)),
         10,
         20,
       )
@@ -260,15 +262,15 @@ export function Editor({ song, chart, onTest, onBack }: Props) {
   return (
     <div className="editor">
       <div className="toolbar">
-        <button onClick={() => onBack(current)}>← Menú</button>
+        <button onClick={() => onBack(current)}>{t.menuBack}</button>
         <button onClick={togglePlay} disabled={!player}>
-          {playing ? 'Pause' : 'Play'} (Space)
+          {playing ? t.edPause : t.edPlay} ({t.space})
         </button>
         <button className={recording ? 'rec on' : 'rec'} onClick={() => setRecording((r) => !r)}>
           ● Rec
         </button>
         <label>
-          Snap
+          {t.snap}
           <select value={snap} onChange={(e) => setSnap(Number(e.target.value))}>
             {SNAPS.map((s) => (
               <option key={s.div} value={s.div}>
@@ -278,7 +280,7 @@ export function Editor({ song, chart, onTest, onBack }: Props) {
           </select>
         </label>
         <label>
-          Speed
+          {t.speed}
           <select value={rate} onChange={(e) => setRate(Number(e.target.value))}>
             {[0.5, 0.75, 1].map((r) => (
               <option key={r} value={r}>
@@ -288,15 +290,15 @@ export function Editor({ song, chart, onTest, onBack }: Props) {
           </select>
         </label>
         <label>
-          Zoom
+          {t.zoom}
           <input type="range" min={2} max={32} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} />
         </label>
-        <span className="meta">{notes.length} notes</span>
+        <span className="meta">{t.notes(notes.length)}</span>
         <button onClick={() => onTest(current)} disabled={notes.length === 0}>
-          Test play
+          {t.testPlay}
         </button>
-        <button onClick={download}>Download JSON</button>
-        <button onClick={() => void navigator.clipboard.writeText(json)}>Copy JSON</button>
+        <button onClick={download}>{t.download}</button>
+        <button onClick={() => void navigator.clipboard.writeText(json)}>{t.copyJson}</button>
       </div>
       <canvas
         ref={canvasRef}
@@ -308,8 +310,7 @@ export function Editor({ song, chart, onTest, onBack }: Props) {
         onWheel={onWheel}
       />
       <p className="hint">
-        Scroll to move · click to add/remove · drag up for a hold · Rec + play to record on the home row · Ctrl+Z
-        undo · save the JSON to <code>src/songs/{song.id}/</code>
+        {t.edHint} <code>src/songs/{song.id}/</code>
       </p>
     </div>
   )

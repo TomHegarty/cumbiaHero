@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { battleRounds } from '../engine/battle'
+import { strings } from '../i18n'
 import { withCode } from '../net/code'
 import type { LobbyHandle } from '../net/lobby'
 import { COUNTDOWN_MS, ROUND_INTRO_MS, type Lobby, type LobbyErrorKind, type Seat, type SeatName } from '../net/types'
@@ -84,7 +85,7 @@ export function useLobby(opts: {
   useEffect(() => {
     if (!joinCode) return
     let cancelled = false
-    void joinOnce(joinCode, latest.current.name || 'INVITADO').then(
+    void joinOnce(joinCode, latest.current.name || strings().guest).then(
       ({ handle, serverNow: now }) => {
         serverNow.current = now
         if (!cancelled) seatIn(handle)
@@ -172,7 +173,7 @@ export function useLobby(opts: {
     void net()
       .then((m) => {
         serverNow.current = m.serverNow
-        return m.createLobby(name || 'ANFITRIÓN', picks)
+        return m.createLobby(name || strings().host, picks)
       })
       .then(seatIn, fail)
   }, [seatIn, fail])
